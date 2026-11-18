@@ -51,9 +51,6 @@ public class LoginController {
             Model model,
             HttpSession session) {
 
-        System.out.println("========== LOGIN ==========");
-        System.out.println("Usuario recibido: " + usuario);
-
         try {
 
             String sql = "SELECT * FROM Usuarios "
@@ -62,17 +59,9 @@ public class LoginController {
             List<Map<String, Object>> datos =
                     dao.consultar(sql, usuario.trim());
 
-            System.out.println(
-                    "Registros encontrados: " + datos.size()
-            );
-
             // Verificar si existe el usuario
             if (datos.isEmpty()) {
 
-                System.out.println(
-                        "RESULTADO: Usuario no encontrado o inactivo"
-                );
-
                 model.addAttribute(
                         "error",
                         "Usuario o contraseña incorrectos."
@@ -81,65 +70,14 @@ public class LoginController {
                 return "login";
             }
 
-            // Obtener datos
+            // Obtener datos del usuario
             Map<String, Object> u = datos.get(0);
 
-            String usuarioDB =
-                    String.valueOf(u.get("usuario"));
-
-            String nombreDB =
-                    String.valueOf(u.get("nombre"));
-
-            String rolDB =
-                    String.valueOf(u.get("rol"));
-
-            String estadoDB =
-                    String.valueOf(u.get("estado"));
-
-            Object claveObjeto = u.get("clave");
-
-            // Verificar que exista la contraseña
-            if (claveObjeto == null) {
-
-                System.out.println(
-                        "RESULTADO: La contraseña almacenada es NULL"
-                );
-
-                model.addAttribute(
-                        "error",
-                        "Usuario o contraseña incorrectos."
-                );
-
-                return "login";
-            }
-
-            String claveGuardada = claveObjeto.toString();
-
-            System.out.println("Usuario DB: " + usuarioDB);
-            System.out.println("Rol DB: " + rolDB);
-            System.out.println("Estado DB: " + estadoDB);
-
-            System.out.println(
-                    "Hash BCrypt: "
-                    + claveGuardada.startsWith("$2")
-            );
+            String claveGuardada =
+                    String.valueOf(u.get("clave"));
 
             // Validar contraseña
-            boolean coincide = encoder.matches(
-                    clave,
-                    claveGuardada
-            );
-
-            System.out.println(
-                    "Contraseña coincide: " + coincide
-            );
-
-            // Contraseña incorrecta
-            if (!coincide) {
-
-                System.out.println(
-                        "RESULTADO: Contraseña incorrecta"
-                );
+            if (!encoder.matches(clave, claveGuardada)) {
 
                 model.addAttribute(
                         "error",
@@ -149,31 +87,25 @@ public class LoginController {
                 return "login";
             }
 
-            // Login correcto
-            System.out.println(
-                    "RESULTADO: Inicio de sesión exitoso"
+            // Guardar datos en sesión
+            session.setAttribute(
+                    "usuario",
+                    u.get("usuario")
             );
 
-            // Crear sesión
-            session.setAttribute("usuario", usuarioDB);
-            session.setAttribute("nombre", nombreDB);
-            session.setAttribute("rol", rolDB);
-
-            System.out.println(
-                    "Sesión creada correctamente"
+            session.setAttribute(
+                    "nombre",
+                    u.get("nombre")
             );
 
-            System.out.println("==========================");
+            session.setAttribute(
+                    "rol",
+                    u.get("rol")
+            );
 
             return "redirect:/panel";
 
         } catch (Exception e) {
-
-            System.err.println(
-                    "ERROR DURANTE EL LOGIN:"
-            );
-
-            e.printStackTrace();
 
             model.addAttribute(
                     "error",
@@ -191,6 +123,7 @@ public class LoginController {
             Model model,
             HttpSession session) {
 
+        // Verificar sesión
         if (session.getAttribute("usuario") == null) {
             return "redirect:/login";
         }
