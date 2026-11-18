@@ -1,25 +1,16 @@
-# Órbita Académica — Proyecto completo
-
-Proyecto Java 21 + Spring Boot 3.5 + Thymeleaf + Turso (HTTP Pipeline).
-
-## Módulos
-Dashboard, Estudiantes, Docentes, Carreras, Asignaturas, Matrículas, Períodos, Horarios, Calificaciones, Asistencia y Usuarios (solo ADMIN).
+# Órbita Académica
+Sistema académico base con Spring Boot 3, Java 21, Thymeleaf y Turso (HTTP Pipeline).
 
 ## Variables de entorno
-- `TURSO_DATABASE_URL`: URL `libsql://...` o `https://...`
-- `TURSO_AUTH_TOKEN`: token de Turso
-- `ADMIN_USER`: usuario administrador inicial (por defecto `admin`)
-- `ADMIN_PASSWORD`: clave administrador inicial (por defecto `admin123`; cambie esta variable en Render)
-- `PORT`: asignado por Render
+- `TURSO_DATABASE_URL`: URL de Turso (puede ser `libsql://...` o `https://...`)
+- `TURSO_AUTH_TOKEN`: token de acceso
+- `ADMIN_USER`: usuario inicial (default `admin`)
+- `ADMIN_PASSWORD`: contraseña inicial (default insegura para desarrollo; cambiar en Render)
 
-La aplicación convierte `libsql://` a `https://` para usar la API HTTP de Turso.
+## Ejecutar
+`mvn spring-boot:run`
 
-## Ejecutar local
-En NetBeans: abrir carpeta del proyecto como Maven project y ejecutar `OrbitaAcademicaApplication`.
-Terminal: `mvn spring-boot:run`
+## Despliegue
+Render: Runtime Docker o Java; puerto se toma de `PORT`. No subir secretos al repositorio.
 
-## Deploy Render
-El repositorio incluye Dockerfile y render.yaml. Render necesita configurar TURSO_DATABASE_URL y TURSO_AUTH_TOKEN en Environment. No publique tokens en GitHub.
-
-## Importante
-Esta es una base funcional inicial. Los campos de relaciones (estudiante_id, carrera_id, asignatura_id, etc.) se introducen como ID numérico; la siguiente mejora recomendada es sustituirlos por desplegables que carguen los registros relacionados y validar reglas académicas.
+Este ZIP contiene un sistema funcional inicial: login, paneles por rol, CRUD básico para usuarios, estudiantes, docentes, asignaturas, períodos, matrículas, calificaciones y asistencia. Algunas funciones de reportes están preparadas como vistas/exportaciones simples y no reemplazan aún reportes PDF con JasperReports.

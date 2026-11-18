@@ -6,6 +6,6 @@ RUN mvn clean package -DskipTests
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 COPY --from=build /app/target/OrbitaAcademica-1.0.0.jar app.jar
-ENV PORT=8080
-EXPOSE 8080
-ENTRYPOINT ["sh","-c","java -Dserver.port=${PORT:-8080} -jar app.jar"]
+ENV PORT=10000
+EXPOSE 10000
+ENTRYPOINT ["sh","-c","java -Dserver.port=${PORT:-10000} -jar app.jar"]

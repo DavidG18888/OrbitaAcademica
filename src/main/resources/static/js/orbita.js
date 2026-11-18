@@ -1,0 +1,1 @@
+// JS base del sistema\n
