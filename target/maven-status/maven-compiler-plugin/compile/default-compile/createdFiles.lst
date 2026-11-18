@@ -1,3 +1,4 @@
+com\mycompany\orbitaacademica\dao\GenerarClave.class
 com\mycompany\orbitaacademica\dao\TursoDAO.class
 com\mycompany\orbitaacademica\service\InicioService.class
 com\mycompany\orbitaacademica\config\TursoConfig.class

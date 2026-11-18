@@ -34,3 +34,10 @@ Contraseña: `OrbitaAdmin2026!`
 **Cambiar ADMIN_PASSWORD en Render antes de poner el sistema en uso.**
 
 Esta entrega es la base inicial: login, sesión, panel y creación de tablas. Los módulos de estudiantes, docentes, matrícula, notas, asistencia y JasperReports se desarrollarán en etapas posteriores.
+
+
+## Módulos añadidos
+
+Se añadieron pantallas CRUD generales para estudiantes, docentes, carreras, asignaturas, períodos, matrículas, horarios, calificaciones, asistencia y usuarios (usuarios solo ADMIN). Las tablas nuevas se crean automáticamente en el arranque por `InicioService`; también está actualizado `database/orbita_academica.sql`.
+
+**Nota:** los campos de relación (ID de estudiante, asignatura, carrera, docente y período) se introducen por ID en esta primera versión; todavía no son listas desplegables relacionadas. Revise los datos antes de guardar.

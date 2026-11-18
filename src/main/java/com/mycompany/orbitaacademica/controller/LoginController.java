@@ -133,11 +133,15 @@ public class LoginController {
                 session.getAttribute("nombre")
         );
 
-        model.addAttribute(
-                "rol",
-                session.getAttribute("rol")
-        );
-
+        model.addAttribute("rol", session.getAttribute("rol"));
+        try {
+            model.addAttribute("totalEstudiantes", dao.consultar("SELECT COUNT(*) AS total FROM Estudiantes").get(0).get("total"));
+            model.addAttribute("totalDocentes", dao.consultar("SELECT COUNT(*) AS total FROM Docentes").get(0).get("total"));
+            model.addAttribute("totalAsignaturas", dao.consultar("SELECT COUNT(*) AS total FROM Asignaturas").get(0).get("total"));
+            model.addAttribute("totalMatriculas", dao.consultar("SELECT COUNT(*) AS total FROM Matriculas").get(0).get("total"));
+        } catch (Exception e) {
+            model.addAttribute("totalEstudiantes", "0"); model.addAttribute("totalDocentes", "0"); model.addAttribute("totalAsignaturas", "0"); model.addAttribute("totalMatriculas", "0");
+        }
         return "panel";
     }
 
