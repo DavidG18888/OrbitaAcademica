@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Mis secciones')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('docente')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Mis secciones')}"></header>
+        <section class="box">
+            <div class="scroll">
+                <table class="tabla">
+                    <thead><tr><th>Sección</th><th>Asignatura</th><th>Período</th><th>Horario</th><th>Aula</th><th>Estudiantes</th><th></th></tr></thead>
+                    <tbody>
+                    <tr th:each="s : ${secciones}">
+                        <td th:text="${s.seccion}"></td>
+                        <td th:text="${s.asignatura}"></td>
+                        <td th:text="${s.periodo}"></td>
+                        <td th:text="${s.dia} + ' ' + ${s.hora_inicio} + '–' + ${s.hora_fin}"></td>
+                        <td th:text="${s.aula}"></td>
+                        <td th:text="${s.inscritos}"></td>
+                        <td class="acc"><a th:href="@{/docente/seccion/{id}(id=${s.id})}">Lista y notas</a></td>
+                    </tr>
+                    <tr th:if="${secciones.isEmpty()}"><td class="muted">No tiene secciones asignadas.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
