@@ -1,0 +1,5 @@
+com\mycompany\orbitaacademica\dao\TursoDAO.class
+com\mycompany\orbitaacademica\service\InicioService.class
+com\mycompany\orbitaacademica\config\TursoConfig.class
+com\mycompany\orbitaacademica\controller\LoginController.class
+com\mycompany\orbitaacademica\OrbitaAcademicaApplication.class
