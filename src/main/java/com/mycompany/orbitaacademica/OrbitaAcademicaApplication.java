@@ -5,9 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class OrbitaAcademicaApplication {
-
     public static void main(String[] args) {
         SpringApplication.run(OrbitaAcademicaApplication.class, args);
     }
-
 }
