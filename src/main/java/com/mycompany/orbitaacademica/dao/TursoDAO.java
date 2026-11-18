@@ -39,11 +39,14 @@ public class TursoDAO {
 
             for (int i = 0; i < columnas.size(); i++) {
 
-                String nombre = columnas.get(i).path("name").asText("col" + i);
+                String nombre = columnas.get(i)
+                        .path("name")
+                        .asText("col" + i);
 
                 JsonNode valorNodo = fila.path(i).path("value");
 
-                Object valor = valorNodo.isMissingNode() || valorNodo.isNull()
+                Object valor = valorNodo.isMissingNode()
+                        || valorNodo.isNull()
                         ? null
                         : valorNodo.asText();
 
@@ -56,17 +59,44 @@ public class TursoDAO {
         return filas;
     }
 
-    // Ejecutar instrucciones INSERT, UPDATE o DELETE
+    // Ejecutar INSERT, UPDATE o DELETE
     public void ejecutarSQL(String sql, Object... valores) {
         ejecutar(sql, valores);
     }
 
-    // Enviar la consulta a Turso
+    // Convertir URL de Turso a HTTPS
+    private String convertirURL(String direccion) {
+
+        direccion = direccion.trim();
+
+        if (direccion.startsWith("libsql://")) {
+            direccion = direccion.replaceFirst(
+                    "^libsql://",
+                    "https://"
+            );
+        }
+
+        if (!direccion.startsWith("https://")) {
+            throw new IllegalArgumentException(
+                    "La URL de Turso debe comenzar con libsql:// o https://"
+            );
+        }
+
+        return direccion.replaceAll("/+$", "");
+    }
+
+    // Enviar consultas a Turso
     private JsonNode ejecutar(String sql, Object... valores) {
 
-        if (url == null || token == null) {
+        if (url == null || url.isBlank()) {
             throw new IllegalStateException(
-                    "Configure TURSO_DATABASE_URL y TURSO_AUTH_TOKEN en las variables de entorno."
+                    "Falta configurar TURSO_DATABASE_URL en Render."
+            );
+        }
+
+        if (token == null || token.isBlank()) {
+            throw new IllegalStateException(
+                    "Falta configurar TURSO_AUTH_TOKEN en Render."
             );
         }
 
@@ -79,13 +109,25 @@ public class TursoDAO {
                 Map<String, Object> argumento = new HashMap<>();
 
                 if (valor == null) {
+
                     argumento.put("type", "null");
 
-                } else if (valor instanceof Number) {
+                } else if (valor instanceof Integer
+                        || valor instanceof Long
+                        || valor instanceof Short
+                        || valor instanceof Byte) {
+
                     argumento.put("type", "integer");
                     argumento.put("value", valor.toString());
 
+                } else if (valor instanceof Float
+                        || valor instanceof Double) {
+
+                    argumento.put("type", "float");
+                    argumento.put("value", valor.toString());
+
                 } else {
+
                     argumento.put("type", "text");
                     argumento.put("value", valor.toString());
                 }
@@ -94,6 +136,7 @@ public class TursoDAO {
             }
 
             Map<String, Object> sentencia = new HashMap<>();
+
             sentencia.put("sql", sql);
             sentencia.put("args", argumentos);
 
@@ -112,13 +155,15 @@ public class TursoDAO {
 
             String cuerpo = mapper.writeValueAsString(solicitud);
 
-            String direccion = url.replaceAll("/$", "") + "/v2/pipeline";
+            String direccion = convertirURL(url) + "/v2/pipeline";
 
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(direccion))
-                    .header("Authorization", "Bearer " + token)
+                    .header("Authorization", "Bearer " + token.trim())
                     .header("Content-Type", "application/json")
-                    .POST(HttpRequest.BodyPublishers.ofString(cuerpo))
+                    .POST(
+                            HttpRequest.BodyPublishers.ofString(cuerpo)
+                    )
                     .build();
 
             HttpResponse<String> response = client.send(
@@ -126,34 +171,60 @@ public class TursoDAO {
                     HttpResponse.BodyHandlers.ofString()
             );
 
-            if (response.statusCode() < 200 || response.statusCode() > 299) {
+            if (response.statusCode() < 200
+                    || response.statusCode() > 299) {
+
                 throw new RuntimeException(
-                        "Turso respondió " + response.statusCode() + ": " + response.body()
+                        "Turso respondió HTTP "
+                        + response.statusCode()
+                        + ": "
+                        + response.body()
                 );
             }
 
             JsonNode respuesta = mapper.readTree(response.body());
 
-            JsonNode resultado = respuesta
-                    .path("results")
-                    .get(0)
-                    .path("response");
+            JsonNode resultados = respuesta.path("results");
 
-            if (resultado.has("error")) {
+            if (resultados.isEmpty()) {
                 throw new RuntimeException(
-                        resultado.path("error").path("message").asText()
+                        "Turso no devolvió resultados: "
+                        + response.body()
                 );
             }
 
-            return resultado.path("result");
+            JsonNode respuestaSQL = resultados
+                    .get(0)
+                    .path("response");
+
+            if (respuestaSQL.has("error")) {
+
+                throw new RuntimeException(
+                        respuestaSQL.path("error")
+                                .path("message")
+                                .asText("Error desconocido de Turso")
+                );
+            }
+
+            JsonNode resultado = respuestaSQL.path("result");
+
+            if (resultado.isMissingNode()
+                    || resultado.isNull()) {
+
+                throw new RuntimeException(
+                        "Turso no devolvió el resultado de la consulta."
+                );
+            }
+
+            return resultado;
 
         } catch (Exception e) {
 
             throw new RuntimeException(
-                    "Error al comunicarse con Turso: " + e.getMessage(),
+                    "Error al comunicarse con Turso: "
+                    + e.getMessage(),
                     e
             );
         }
     }
-
 }
