@@ -1,1 +1,0 @@
-package com.mycompany.orbitaacademica.model;\npublic class Docente { // Modelo de datos docente\n private Long id;\n public Long getId(){return id;} public void setId(Long id){this.id=id;}\n}\n
