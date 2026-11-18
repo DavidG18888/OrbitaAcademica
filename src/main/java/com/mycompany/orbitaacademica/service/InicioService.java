@@ -18,7 +18,8 @@ public class InicioService {
         "CREATE TABLE IF NOT EXISTS Asignaturas (id INTEGER PRIMARY KEY AUTOINCREMENT, codigo TEXT UNIQUE, nombre TEXT NOT NULL, uv INTEGER, carrera_id INTEGER, estado TEXT DEFAULT 'ACTIVO')",
         "CREATE TABLE IF NOT EXISTS Secciones (id INTEGER PRIMARY KEY AUTOINCREMENT, codigo TEXT, asignatura_id INTEGER, docente_id INTEGER, periodo_id INTEGER, aula TEXT, cupo INTEGER, dia TEXT, hora_inicio TEXT, hora_fin TEXT)",
         "CREATE TABLE IF NOT EXISTS Matriculas (id INTEGER PRIMARY KEY AUTOINCREMENT, estudiante_id INTEGER NOT NULL, seccion_id INTEGER NOT NULL, fecha TEXT DEFAULT (date('now')), estado TEXT DEFAULT 'ACTIVA', UNIQUE(estudiante_id, seccion_id))",
-        "CREATE TABLE IF NOT EXISTS Calificaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, matricula_id INTEGER UNIQUE NOT NULL, parcial1 REAL, parcial2 REAL, parcial3 REAL)"
+        "CREATE TABLE IF NOT EXISTS Calificaciones (id INTEGER PRIMARY KEY AUTOINCREMENT, matricula_id INTEGER UNIQUE NOT NULL, parcial1 REAL, parcial2 REAL, parcial3 REAL)",
+        "CREATE TABLE IF NOT EXISTS Asistencia (id INTEGER PRIMARY KEY AUTOINCREMENT, matricula_id INTEGER NOT NULL, fecha TEXT NOT NULL, estado TEXT NOT NULL, UNIQUE(matricula_id, fecha))"
     };
 
     private static final String[] ALTER = {

@@ -35,22 +35,18 @@ public class CrudController {
             "SELECT id, codigo AS Codigo, nombre AS Nombre, estado AS Estado FROM Carreras ORDER BY nombre",
             List.of(t("codigo", "Código"), t("nombre", "Nombre"), ESTADO)),
         "asignaturas", new Ent("Asignaturas", "Asignaturas",
-            "SELECT a.id, a.codigo AS Codigo, a.nombre AS Nombre, a.uv AS UV, c.nombre AS Carrera FROM Asignaturas a LEFT JOIN Carreras c ON c.id = a.carrera_id ORDER BY a.codigo",
+            "SELECT a.id, a.codigo AS Codigo, a.nombre AS Nombre, a.uv AS UV, c.nombre AS Carrera, (SELECT COUNT(*) FROM Secciones x WHERE x.asignatura_id = a.id) AS Secciones FROM Asignaturas a LEFT JOIN Carreras c ON c.id = a.carrera_id ORDER BY a.codigo",
             List.of(t("codigo", "Código"), t("nombre", "Nombre"), k("uv", "Unidades valorativas", "number"), s("carrera_id", "Carrera", CARRERAS), ESTADO)),
         "periodos", new Ent("Periodos", "Períodos académicos",
             "SELECT id, nombre AS Nombre, fecha_inicio AS Inicio, fecha_fin AS Fin, estado AS Estado FROM Periodos ORDER BY id DESC",
             List.of(t("nombre", "Nombre"), k("fecha_inicio", "Inicio", "date"), k("fecha_fin", "Fin", "date"), ESTADO)),
         "secciones", new Ent("Secciones", "Secciones y horarios",
-            "SELECT s.id, s.codigo AS Seccion, a.nombre AS Asignatura, d.nombre || ' ' || d.apellido AS Docente, p.nombre AS Periodo, s.dia AS Dia, s.hora_inicio AS Inicio, s.hora_fin AS Fin, s.aula AS Aula, s.cupo AS Cupo FROM Secciones s LEFT JOIN Asignaturas a ON a.id = s.asignatura_id LEFT JOIN Docentes d ON d.id = s.docente_id LEFT JOIN Periodos p ON p.id = s.periodo_id ORDER BY s.id DESC",
+            "SELECT s.id, s.codigo AS Seccion, a.nombre AS Asignatura, d.nombre || ' ' || d.apellido AS Docente, p.nombre AS Periodo, s.dia AS Dia, s.hora_inicio AS Inicio, s.hora_fin AS Fin, s.aula AS Aula, s.cupo AS Cupo, (SELECT COUNT(*) FROM Matriculas m WHERE m.seccion_id = s.id AND m.estado = 'ACTIVA') AS Inscritos FROM Secciones s LEFT JOIN Asignaturas a ON a.id = s.asignatura_id LEFT JOIN Docentes d ON d.id = s.docente_id LEFT JOIN Periodos p ON p.id = s.periodo_id ORDER BY s.id DESC",
             List.of(t("codigo", "Código de sección"),
                 s("asignatura_id", "Asignatura", "SELECT id, codigo || ' · ' || nombre AS nombre FROM Asignaturas ORDER BY codigo"),
                 s("docente_id", "Docente", "SELECT id, nombre || ' ' || apellido AS nombre FROM Docentes ORDER BY apellido"),
                 s("periodo_id", "Período", "SELECT id, nombre FROM Periodos ORDER BY id DESC"),
-                t("aula", "Aula"), k("cupo", "Cupo", "number"), t("dia", "Día"), k("hora_inicio", "Hora inicio", "time"), k("hora_fin", "Hora fin", "time"))),
-        "matriculas", new Ent("Matriculas", "Matrículas",
-            "SELECT m.id, e.codigo AS Codigo, e.nombre || ' ' || e.apellido AS Estudiante, s.codigo AS Seccion, a.nombre AS Asignatura, m.fecha AS Fecha FROM Matriculas m JOIN Estudiantes e ON e.id = m.estudiante_id JOIN Secciones s ON s.id = m.seccion_id LEFT JOIN Asignaturas a ON a.id = s.asignatura_id ORDER BY m.id DESC",
-            List.of(s("estudiante_id", "Estudiante", "SELECT id, codigo || ' · ' || nombre || ' ' || apellido AS nombre FROM Estudiantes ORDER BY apellido"),
-                s("seccion_id", "Sección", "SELECT s.id, s.codigo || ' · ' || a.nombre AS nombre FROM Secciones s JOIN Asignaturas a ON a.id = s.asignatura_id ORDER BY s.id DESC")))
+                t("aula", "Aula"), k("cupo", "Cupo", "number"), k("dia", "Día", "dia"), k("hora_inicio", "Hora inicio", "time"), k("hora_fin", "Hora fin", "time")))
     );
 
     private final TursoDAO dao;

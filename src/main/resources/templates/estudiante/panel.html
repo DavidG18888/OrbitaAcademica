@@ -1,33 +1,43 @@
 <!DOCTYPE html>
 <html lang="es" xmlns:th="http://www.thymeleaf.org">
-<head th:replace="~{fragments :: head('Mis asignaturas y notas')}"></head>
+<head th:replace="~{fragments :: head('Inicio')}"></head>
 <body>
 <div class="app">
-    <aside th:replace="~{fragments :: side('estudiante')}"></aside>
+    <aside th:replace="~{fragments :: side('inicio')}"></aside>
     <main class="main">
-        <header th:replace="~{fragments :: top('Mis asignaturas y notas')}"></header>
-        <section class="box">
-            <div class="scroll">
-                <table class="tabla">
-                    <thead><tr><th>Código</th><th>Asignatura</th><th>Sección</th><th>Período</th><th>Horario</th><th>P1</th><th>P2</th><th>P3</th><th>Promedio</th><th>Estado</th></tr></thead>
-                    <tbody>
-                    <tr th:each="d : ${datos}">
-                        <td th:text="${d.codigo}"></td>
-                        <td th:text="${d.asignatura}"></td>
-                        <td th:text="${d.seccion}"></td>
-                        <td th:text="${d.periodo}"></td>
-                        <td th:text="${d.dia} + ' ' + ${d.hora_inicio} + '–' + ${d.hora_fin}"></td>
-                        <td th:text="${d.parcial1} ?: '—'"></td>
-                        <td th:text="${d.parcial2} ?: '—'"></td>
-                        <td th:text="${d.parcial3} ?: '—'"></td>
-                        <td><strong th:text="${d.promedio} ?: '—'"></strong></td>
-                        <td th:text="${d.promedio == null} ? 'En curso' : (${T(java.lang.Double).parseDouble(d.promedio) >= 65} ? 'Aprobada' : 'Reprobada')"></td>
-                    </tr>
-                    <tr th:if="${datos.isEmpty()}"><td class="muted">Todavía no tiene asignaturas matriculadas.</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <p class="muted">Nota mínima aprobatoria: 65. El promedio se calcula cuando los tres parciales están registrados.</p>
+        <header th:replace="~{fragments :: top('Portal estudiantil')}"></header>
+        <section th:replace="~{fragments :: hero(${saludo}, ${yo.carrera} != null ? ${yo.carrera} + ' · Código ' + ${yo.codigo} : 'Hoy es ' + ${fecha})}"></section>
+
+        <section class="rings">
+            <div th:replace="~{fragments :: ring(${promedio} ?: 0, ${promedio} ?: '—', 'Promedio general')}"></div>
+            <div th:replace="~{fragments :: ring(${asistencia} ?: 0, ${asistencia} != null ? ${asistencia} + '%' : '—', 'Asistencia del período')}"></div>
+            <div class="ring-box"><div class="ring-wrap plain"><b th:text="${actuales.size()}">0</b></div><small>Asignaturas en curso</small></div>
+            <div class="ring-box"><div class="ring-wrap plain"><b th:text="${uv}">0</b></div><small>Unidades valorativas</small></div>
+        </section>
+
+        <section class="content-grid">
+            <article class="box">
+                <h3>Clases de hoy</h3>
+                <p class="muted" th:if="${hoy.isEmpty()}">No tiene clases programadas hoy.</p>
+                <ul class="agenda">
+                    <li th:each="c : ${hoy}">
+                        <b th:text="${c.hora_inicio} + ' – ' + ${c.hora_fin}"></b>
+                        <span th:text="${c.asignatura}"></span>
+                        <small th:text="${c.aula} ?: 'Aula por definir'"></small>
+                    </li>
+                </ul>
+            </article>
+            <article class="box">
+                <h3>Mis asignaturas</h3>
+                <ul class="agenda">
+                    <li th:each="r : ${actuales}">
+                        <span th:text="${r.asignatura}"></span>
+                        <small th:text="${r.docente} ?: 'Docente por asignar'"></small>
+                        <span class="pill" th:classappend="${r.clase}" th:text="${r.promedio} ?: 'En curso'"></span>
+                    </li>
+                </ul>
+                <p class="muted" th:if="${actuales.isEmpty()}">Todavía no tiene asignaturas matriculadas.</p>
+            </article>
         </section>
     </main>
 </div>

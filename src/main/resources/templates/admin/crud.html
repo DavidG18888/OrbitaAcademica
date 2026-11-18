@@ -23,7 +23,12 @@
                         <option th:each="v : ${ {'ACTIVO','INACTIVO'} }" th:value="${v}" th:text="${v}"
                                 th:selected="${form != null and form.get(c.n()) == v}"></option>
                     </select>
-                    <input th:if="${c.tipo() != 'sel' and c.tipo() != 'estado'}" th:type="${c.tipo()}" th:name="${c.n()}"
+                    <select th:if="${c.tipo() == 'dia'}" th:name="${c.n()}">
+                        <option value="">Seleccione</option>
+                        <option th:each="v : ${ {'Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'} }" th:value="${v}" th:text="${v}"
+                                th:selected="${form != null and form.get(c.n()) == v}"></option>
+                    </select>
+                    <input th:if="${c.tipo() != 'sel' and c.tipo() != 'estado' and c.tipo() != 'dia'}" th:type="${c.tipo()}" th:name="${c.n()}"
                            th:value="${form != null} ? ${form.get(c.n())}">
                 </label>
                 <div class="form-actions">
