@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Asistencia')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('secciones')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top(${sec.asignatura} + ' · ' + ${sec.seccion})}"></header>
+        <nav th:replace="~{fragments :: tabs(${sec.id}, 'asistencia')}"></nav>
+        <th:block th:replace="~{fragments :: avisos}"></th:block>
+        <section class="box">
+            <form method="get" th:action="@{/docente/seccion/{id}/asistencia(id=${sec.id})}" class="filtro">
+                <label>Fecha de la clase <input type="date" name="fecha" th:value="${fecha}" onchange="this.form.submit()"></label>
+                <span class="muted" th:if="${!fechas.isEmpty()}">Registradas:
+                    <a th:each="f : ${fechas}" class="chip" th:href="@{/docente/seccion/{id}/asistencia(id=${sec.id}, fecha=${f.fecha})}" th:text="${f.fecha}"></a></span>
+            </form>
+            <form method="post" th:action="@{/docente/seccion/{id}/asistencia(id=${sec.id})}">
+                <input type="hidden" name="fecha" th:value="${fecha}">
+                <div class="scroll">
+                    <table class="tabla">
+                        <thead><tr><th>Código</th><th>Estudiante</th><th>Asistencia del día</th><th>Acumulada</th></tr></thead>
+                        <tbody>
+                        <tr th:each="a : ${alumnos}">
+                            <td th:text="${a.codigo}"></td>
+                            <td th:text="${a.nombre}"></td>
+                            <td><div class="seg">
+                                <label><input type="radio" th:name="'a_' + ${a.matricula}" value="P" th:checked="${a.marca == 'P'}"><span class="p">Presente</span></label>
+                                <label><input type="radio" th:name="'a_' + ${a.matricula}" value="A" th:checked="${a.marca == 'A'}"><span class="a">Ausente</span></label>
+                                <label><input type="radio" th:name="'a_' + ${a.matricula}" value="J" th:checked="${a.marca == 'J'}"><span class="j">Justificada</span></label>
+                            </div></td>
+                            <td th:text="${a.asist != null} ? ${a.asist} + '%' : '—'"></td>
+                        </tr>
+                        <tr th:if="${alumnos.isEmpty()}"><td class="muted">No hay estudiantes matriculados.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="form-actions">
+                    <button class="btn" type="submit">Guardar asistencia</button>
+                    <button class="btn ghost" type="button" onclick="document.querySelectorAll('input[value=P]').forEach(function(i){i.checked=true})">Marcar todos presentes</button>
+                </div>
+            </form>
+        </section>
+    </main>
+</div>
+</body>
+</html>

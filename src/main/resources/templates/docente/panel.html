@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Inicio')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('inicio')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Portal docente')}"></header>
+        <section th:replace="~{fragments :: hero(${saludo}, 'Hoy es ' + ${fecha} + '. Esto es lo que tiene en su órbita.')}"></section>
+
+        <section class="stats">
+            <article><small>Secciones a cargo</small><strong th:text="${secciones.size()}">0</strong><span>Todas las registradas</span></article>
+            <article><small>Estudiantes</small><strong th:text="${alumnos}">0</strong><span>Matrículas activas</span></article>
+            <article><small>Notas pendientes</small><strong th:text="${pendientes}">0</strong><span>Parciales sin registrar</span></article>
+            <article><small>Clases hoy</small><strong th:text="${hoy.size()}">0</strong><span>Según su horario</span></article>
+        </section>
+
+        <section class="content-grid">
+            <article class="box">
+                <h3>Clases de hoy</h3>
+                <p class="muted" th:if="${hoy.isEmpty()}">No tiene clases programadas hoy.</p>
+                <ul class="agenda">
+                    <li th:each="c : ${hoy}">
+                        <b th:text="${c.hora_inicio} + ' – ' + ${c.hora_fin}"></b>
+                        <span th:text="${c.asignatura}"></span>
+                        <small th:text="${c.aula} ?: 'Aula por definir'"></small>
+                        <a th:href="@{/docente/seccion/{id}/asistencia(id=${c.id})}">Pasar asistencia</a>
+                    </li>
+                </ul>
+            </article>
+            <article class="box">
+                <h3>Mis secciones</h3>
+                <ul class="agenda">
+                    <li th:each="s : ${secciones}">
+                        <span th:text="${s.asignatura}"></span>
+                        <small th:text="${s.seccion} + ' · ' + ${s.periodo}"></small>
+                        <a th:href="@{/docente/seccion/{id}(id=${s.id})}">Abrir</a>
+                    </li>
+                </ul>
+                <p class="muted" th:if="${secciones.isEmpty()}">Aún no tiene secciones asignadas.</p>
+            </article>
+        </section>
+    </main>
+</div>
+</body>
+</html>
