@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Diagnóstico')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('diagnostico')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Diagnóstico de la base de datos')}"></header>
+        <th:block th:replace="~{fragments :: avisos}"></th:block>
+        <section class="box">
+            <div class="box-head">
+                <h3>Tablas en Turso</h3>
+                <form method="post" action="/admin/diagnostico/reparar">
+                    <button class="btn" type="submit">Crear tablas que falten</button>
+                </form>
+            </div>
+            <div class="scroll">
+                <table class="tabla">
+                    <thead><tr><th>Tabla</th><th>Estado</th><th>Detalle</th></tr></thead>
+                    <tbody>
+                    <tr th:each="f : ${filas}">
+                        <td th:text="${f.tabla}"></td>
+                        <td><span class="pill" th:classappend="${f.ok} ? 'ok' : 'bad'" th:text="${f.ok} ? 'OK' : 'Con error'"></span></td>
+                        <td th:text="${f.detalle}"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
