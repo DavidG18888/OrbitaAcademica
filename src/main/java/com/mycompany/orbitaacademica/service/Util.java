@@ -12,11 +12,11 @@ public final class Util {
 
     public static final double PASA = 70;
     public static final ZoneId ZONA = ZoneId.of("America/Tegucigalpa");
-    public static final List<String> DIAS = List.of("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado");
+    public static final List<String> DIAS = List.of("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo");
 
-    // Los parciales se almacenan como puntos obtenidos: 25 + 35 + 40. Extras limitados a 100.
-    public static final String PROM = "CASE WHEN c.parcial1 IS NOT NULL AND c.parcial2 IS NOT NULL AND c.parcial3 IS NOT NULL "
-            + "THEN MIN(100, ROUND(c.parcial1 + c.parcial2 + c.parcial3 + COALESCE(c.puntos_extra,0), 1)) END";
+    // Nota acumulada: parciales ponderados como puntos (25 + 35 + 40), más extras; máximo 100.
+    public static final String PROM = "CASE WHEN c.parcial1 IS NOT NULL OR c.parcial2 IS NOT NULL OR c.parcial3 IS NOT NULL "
+            + "THEN MIN(100.0, COALESCE(c.parcial1,0) + COALESCE(c.parcial2,0) + COALESCE(c.parcial3,0) + COALESCE(c.puntos_extra,0)) END";
 
     private Util() {}
 
@@ -47,14 +47,19 @@ public final class Util {
     public static void marcar(List<Map<String, Object>> rows) {
         for (Map<String, Object> r : rows) {
             Double p = num(r.get("promedio"));
-            r.put("estado", p == null ? "Cursando" : p >= PASA ? "Aprobada" : "Reprobada");
-            r.put("clase", p == null ? "neutral" : p >= PASA ? "ok" : "bad");
+            String matriculaEstado = String.valueOf(r.getOrDefault("m_estado", "ACTIVA"));
+            boolean cerrada = r.get("fecha_cierre") != null && !r.get("fecha_cierre").toString().isBlank();
+            String estado = matriculaEstado.equalsIgnoreCase("NO_SE_PRESENTO") || matriculaEstado.equalsIgnoreCase("NO SE PRESENTO")
+                    ? "No se presentó" : !cerrada ? "Cursando" : p != null && p >= PASA ? "Aprobada" : "Reprobada";
+            r.put("estado", estado);
+            r.put("clase", estado.equals("Aprobada") ? "ok" : estado.equals("Reprobada") ? "bad" : estado.equals("No se presentó") ? "warn" : "neutral");
             Double cl = num(r.get("clases")), as = num(r.get("asistidas"));
             r.put("asist", cl == null || cl == 0 || as == null ? null : Math.round(100.0 * as / cl));
             Double cu = num(r.get("cupo")), in = num(r.get("inscritos"));
             r.put("ocup", cu == null || cu == 0 || in == null ? 0 : Math.min(100, Math.round(100.0 * in / cu)));
             Object d = r.get("dia");
-            r.put("horario", d == null ? "Por definir" : d + " " + r.get("hora_inicio") + "–" + r.get("hora_fin"));
+            Object bloques = r.get("bloques");
+            r.put("horario", bloques != null && !bloques.toString().isBlank() ? bloques.toString().replace(";", " · ").replace("|", " ") : d == null ? "Por definir" : d + " " + r.get("hora_inicio") + "–" + r.get("hora_fin"));
         }
     }
 
@@ -63,11 +68,27 @@ public final class Util {
         Map<String, List<Map<String, Object>>> s = new LinkedHashMap<>();
         for (String d : DIAS) s.put(d, new ArrayList<>());
         for (Map<String, Object> r : rows) {
-            List<Map<String, Object>> l = s.get(String.valueOf(r.get("dia")));
-            if (l == null) continue;
-            Map<String, Object> c = new LinkedHashMap<>(r);
-            c.put("tono", Math.floorMod(String.valueOf(r.get("asignatura")).hashCode(), 360));
-            l.add(c);
+            Object bloquesObj = r.get("bloques");
+            String bloques = bloquesObj == null ? "" : bloquesObj.toString();
+            if (!bloques.isBlank()) {
+                for (String b : bloques.split(";")) {
+                    String[] v = b.split("\\|", -1);
+                    if (v.length < 3) continue;
+                    List<Map<String, Object>> destino = s.get(v[0]);
+                    if (destino == null) continue;
+                    Map<String, Object> c = new LinkedHashMap<>(r);
+                    c.put("dia", v[0]); c.put("hora_inicio", v[1]); c.put("hora_fin", v[2]);
+                    c.put("aula", v.length > 3 && !v[3].isBlank() ? v[3] : r.get("aula"));
+                    c.put("tono", Math.floorMod(String.valueOf(r.get("asignatura")).hashCode(), 360));
+                    destino.add(c);
+                }
+            } else {
+                List<Map<String, Object>> l = s.get(String.valueOf(r.get("dia")));
+                if (l == null) continue;
+                Map<String, Object> c = new LinkedHashMap<>(r);
+                c.put("tono", Math.floorMod(String.valueOf(r.get("asignatura")).hashCode(), 360));
+                l.add(c);
+            }
         }
         s.values().forEach(l -> l.sort(Comparator.comparing(x -> String.valueOf(x.get("hora_inicio")))));
         return s;

@@ -12,7 +12,7 @@
             <form method="post" th:action="@{/docente/seccion/{id}/notas(id=${sec.id})}">
                 <div class="scroll">
                     <table class="tabla" id="notas">
-                        <thead><tr><th>Código</th><th>Estudiante</th><th>Parcial I (25)</th><th>Parcial II (35)</th><th>Parcial III (40)</th><th>Extra</th><th>Total</th></tr></thead>
+                        <thead><tr><th>Código</th><th>Estudiante</th><th>Parcial I / 25</th><th>Parcial II / 35</th><th>Parcial III / 40</th><th>Extras</th><th>Nota final</th></tr></thead>
                         <tbody>
                         <tr th:each="a : ${alumnos}">
                             <td th:text="${a.codigo}"></td>
@@ -20,7 +20,7 @@
                             <td><input class="nota" type="number" min="0" max="25" step="0.1" th:name="'p1_' + ${a.matricula}" th:value="${a.parcial1}"></td>
                             <td><input class="nota" type="number" min="0" max="35" step="0.1" th:name="'p2_' + ${a.matricula}" th:value="${a.parcial2}"></td>
                             <td><input class="nota" type="number" min="0" max="40" step="0.1" th:name="'p3_' + ${a.matricula}" th:value="${a.parcial3}"></td>
-                            <td><input class="nota extra" type="number" min="0" max="100" step="0.1" th:name="'extra_' + ${a.matricula}" th:value="${a.puntos_extra}"></td>
+                            <td><input class="nota extra" type="number" min="0" max="100" step="0.1" th:name="'extra_' + ${a.matricula}" th:value="${a.puntos_extra} ?: 0"></td>
                             <td><span class="pill prom" th:classappend="${a.clase}" th:text="${a.promedio} ?: '—'"></span></td>
                         </tr>
                         <tr th:if="${alumnos.isEmpty()}"><td class="muted">No hay estudiantes matriculados.</td></tr>
@@ -28,27 +28,24 @@
                     </table>
                 </div>
                 <div class="form-actions"><button class="btn" type="submit">Guardar calificaciones</button></div>
-            <p class="muted">Los parciales suman 100 puntos: I = 25, II = 35 y III = 40. Los puntos extras se agregan al cierre, con tope de 100.</p>
             </form>
+            <form method="post" th:action="@{/docente/seccion/{id}/cerrar-notas(id=${sec.id})}" onsubmit="return confirm('¿Cerrar las calificaciones? Después requerirá autorización administrativa para reabrirlas.')" class="form-actions"><button class="btn ghost" type="submit">Cerrar calificaciones de la sección</button></form>
         </section>
     </main>
 </div>
 <script>
 document.querySelectorAll('#notas tbody tr').forEach(function (tr) {
-    var inp = tr.querySelectorAll('input.nota:not(.extra)');
-    var extra = tr.querySelector('input.extra');
-    var pill = tr.querySelector('.prom');
+    var inp = tr.querySelectorAll('input.nota'), pill = tr.querySelector('.prom');
     if (!pill) return;
-    function recalcular() {
-        var v = Array.from(inp).map(function (x) { return x.value === '' ? NaN : parseFloat(x.value); });
-        if (v.some(isNaN)) { pill.textContent = '—'; pill.className = 'pill prom neutral'; return; }
-        var adicional = extra && extra.value ? parseFloat(extra.value) : 0;
-        var p = Math.min(100, Math.round((v[0] + v[1] + v[2] + (isNaN(adicional) ? 0 : adicional)) * 10) / 10);
-        pill.textContent = p;
-        pill.className = 'pill prom ' + (p >= 70 ? 'ok' : 'bad');
-    }
-    inp.forEach(function (i) { i.addEventListener('input', recalcular); });
-    if (extra) extra.addEventListener('input', recalcular);
+    var extra = tr.querySelector('.extra'); if (extra) inp = Array.from(inp).concat([extra]);
+    inp.forEach(function (i) {
+        i.addEventListener('input', function () {
+            var v = Array.from(inp).slice(0,3).map(function (x) { return parseFloat(x.value); });
+            if (v.some(isNaN)) { pill.textContent = '—'; pill.className = 'pill prom neutral'; return; }
+            var ex = parseFloat(tr.querySelector(".extra")?.value || 0); var p = Math.min(100, Math.round((v[0] + v[1] + v[2] + (isNaN(ex)?0:ex)) * 10) / 10);
+            pill.textContent = p; pill.className = 'pill prom ' + (p >= 70 ? 'ok' : 'bad');
+        });
+    });
 });
 </script>
 </body>

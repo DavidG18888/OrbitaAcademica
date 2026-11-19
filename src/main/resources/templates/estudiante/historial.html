@@ -8,6 +8,10 @@
         <header th:replace="~{fragments :: top('Historial académico')}"></header>
 
         <section class="stats">
+            <article><small>Aprobadas</small><strong th:text="${aprobadas}"></strong><span>Asignaturas aprobadas</span></article>
+            <article><small>Reprobadas</small><strong th:text="${reprobadas}"></strong><span>Asignaturas reprobadas</span></article>
+            <article><small>No se presentó</small><strong th:text="${noPresento}"></strong><span>Casos confirmados</span></article>
+            <article><small>Cursando</small><strong th:text="${cursando}"></strong><span>Asignaturas activas</span></article>
             <article><small>Índice acumulado</small><strong th:text="${indice} ?: '—'"></strong><span>Promedio de asignaturas calificadas</span></article>
             <article><small>UV aprobadas</small><strong th:text="${uvAprobadas}"></strong><span>Unidades valorativas</span></article>
             <article class="no-print"><small>Documento</small>
@@ -27,7 +31,7 @@
                     <tr th:each="r : ${b.filas}">
                         <td th:text="${r.codigo}"></td><td th:text="${r.asignatura}"></td><td th:text="${r.uv}"></td>
                         <td><strong th:text="${r.promedio} ?: '—'"></strong></td>
-                        <td><span class="pill" th:classappend="${r.m_estado == 'ACTIVA'} ? ${r.clase} : 'warn'" th:text="${r.m_estado == 'ACTIVA'} ? ${r.estado} : 'Retirada'"></span></td>
+                        <td><span class="pill" th:classappend="${r.clase}" th:text="${r.m_estado == 'ACTIVA' or r.m_estado == 'NO_SE_PRESENTO' ? r.estado : 'Retirada'}"></span></td>
                     </tr>
                     </tbody>
                 </table>

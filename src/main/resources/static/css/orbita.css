@@ -608,37 +608,12 @@ a.btn { display: inline-block; }
     .btn, .tabs a, .sidebar a { transition: background-color .15s, color .15s; }
 }
 
-
-/* ===== Rediseño Órbita Académica ===== */
-:root { --orbita-navy:#102b4e; --orbita-blue:#245b91; --orbita-ink:#1d2d42; --orbita-line:#e4eaf1; --orbita-bg:#f5f7fb; }
-body { color:var(--orbita-ink); background:var(--orbita-bg); }
-.sidebar { background:linear-gradient(180deg,#102b4e 0%,#173d66 100%); width:264px; padding:24px 17px; box-shadow:8px 0 28px #17365d0c; }
-.side-logo { width:178px; margin-bottom:30px; }
-.nav-title, .nav-group summary { color:#9eb5cf; font-size:10px; letter-spacing:1.35px; font-weight:800; padding:13px 12px 8px; }
-.nav-group { margin:5px 0 10px; }
-.nav-group summary { cursor:pointer; list-style:none; }
-.nav-group summary::-webkit-details-marker { display:none; }
-.nav-group summary:after { content:'⌄'; float:right; font-size:14px; }
-.nav-group[open] summary:after { content:'⌃'; }
-.nav-group a { display:block; margin:3px 0; padding:10px 12px; border-radius:9px; }
-.sidebar a.active,.sidebar a:hover { background:#ffffff20; box-shadow:inset 3px 0 #8fc5ff; }
-.main { padding:34px clamp(20px,3vw,48px); max-width:1680px; }
-header { padding-bottom:17px; border-bottom:1px solid var(--orbita-line); }
-header h1 { color:#142d4b; font-size:27px; letter-spacing:-.5px; }
-.box,.stats article,.welcome { border:1px solid var(--orbita-line); border-radius:16px; box-shadow:0 8px 28px #17365d08; }
-.box { padding:24px; background:#fff; }
-.stats { gap:16px; }
-.stats article { padding:22px; background:linear-gradient(145deg,#fff,#fbfcfe); }
-.stats article strong { color:#163d66; font-size:32px; }
-.btn,button.btn { border-radius:10px; background:var(--orbita-blue); box-shadow:0 5px 12px #245b9120; }
-.btn:hover,button.btn:hover { background:#174775; transform:translateY(-1px); }
-input,select,textarea { border:1px solid #dbe3ec; border-radius:9px; padding:11px 12px; font:inherit; background:#fff; color:var(--orbita-ink); }
-input:focus,select:focus,textarea:focus { outline:0; border-color:#5c94c8; box-shadow:0 0 0 3px #5c94c81c; }
-.form-grid { gap:18px; }
-.form-grid label { gap:7px; }
-.form-grid label span { color:#52657b; font-size:12px; font-weight:700; }
-.tabla th { background:#f5f8fc; color:#52657b; font-size:11px; letter-spacing:.45px; text-transform:uppercase; }
-.tabla td,.tabla th { padding:13px 14px; }
-.tabla tbody tr:hover { background:#f8fbff; }
-.flash { border-radius:11px; padding:13px 16px; }
-@media(max-width:850px){ .app{display:block}.sidebar{width:100%;min-height:0}.main{padding:22px 16px}.nav-group{display:inline-block;vertical-align:top;width:48%;}.sidebar>a{display:inline-block}.side-logo{margin:0 auto 15px} }
+/* Programador de secciones y bloques de horario */
+.schedule-builder { margin-top: 8px; padding: 18px; border: 1px solid var(--line, #e4e8ef); border-radius: 18px; background: var(--surface-soft, #f8fafc); }
+.schedule-block { box-shadow: 0 5px 18px rgba(20,35,60,.045); }
+.schedule-block .box-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.schedule-block .days-wrap { margin-top:14px; }
+.schedule-block .day-picks label { border:1px solid var(--line,#dce2ea); border-radius:999px; padding:7px 11px; background:#fff; font-size:12px; cursor:pointer; }
+.schedule-block .day-picks label:has(input:checked) { border-color:#4b79d8; background:#edf3ff; color:#2455ad; }
+.schedule-block .day-picks input { accent-color:#315fc2; }
+@media (max-width: 700px) { .schedule-builder { padding:12px; } .schedule-block { padding:12px !important; } }

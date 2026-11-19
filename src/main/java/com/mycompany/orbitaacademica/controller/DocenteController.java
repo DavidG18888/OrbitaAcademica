@@ -26,13 +26,13 @@ public class DocenteController {
     }
 
     private static final String MIS =
-            "SELECT s.id, s.codigo AS seccion, a.codigo AS codigo, a.nombre AS asignatura, p.nombre AS periodo, s.dia, s.hora_inicio, s.hora_fin, s.aula, s.cupo, "
+            "SELECT s.id, s.codigo AS seccion, a.codigo AS codigo, a.nombre AS asignatura, p.nombre AS periodo, s.dia, s.hora_inicio, s.hora_fin, s.aula, s.cupo, (SELECT GROUP_CONCAT(h.dia_semana || '|' || h.hora_inicio || '|' || h.hora_fin || '|' || COALESCE(h.aula,''), ';') FROM HorariosSeccion h WHERE h.seccion_id=s.id AND h.dia_semana IS NOT NULL) AS bloques, "
             + "(SELECT COUNT(*) FROM Matriculas m WHERE m.seccion_id = s.id AND m.estado = 'ACTIVA') AS inscritos "
             + "FROM Secciones s JOIN Docentes d ON d.id = s.docente_id JOIN Usuarios u ON u.id = d.usuario_id "
             + "LEFT JOIN Asignaturas a ON a.id = s.asignatura_id LEFT JOIN Periodos p ON p.id = s.periodo_id WHERE u.usuario = ? ";
 
     private static final String ALUM =
-            "SELECT m.id AS matricula, e.codigo, e.nombre || ' ' || e.apellido AS nombre, c.parcial1, c.parcial2, c.parcial3, c.puntos_extra, " + Util.PROM + " AS promedio, "
+            "SELECT m.id AS matricula, e.codigo, e.nombre || ' ' || e.apellido AS nombre, m.estado AS m_estado, c.parcial1, c.parcial2, c.parcial3, c.puntos_extra, c.fecha_cierre, " + Util.PROM + " AS promedio, "
             + "(SELECT COUNT(*) FROM Asistencia x WHERE x.matricula_id = m.id) AS clases, "
             + "(SELECT COUNT(*) FROM Asistencia x WHERE x.matricula_id = m.id AND x.estado IN ('P','J')) AS asistidas "
             + "FROM Matriculas m JOIN Estudiantes e ON e.id = m.estudiante_id LEFT JOIN Calificaciones c ON c.matricula_id = m.id "
@@ -80,6 +80,10 @@ public class DocenteController {
     @GetMapping("/horario")
     public String horario(Model m, HttpSession s) {
         m.addAttribute("semana", Util.semana(secciones(s)));
+        m.addAttribute("fechasEspeciales", dao.consultar(
+                "SELECT h.fecha_especifica AS fecha,h.hora_inicio,h.hora_fin,COALESCE(h.aula,sc.aula) AS aula,a.nombre AS asignatura,sc.codigo AS seccion "
+                + "FROM HorariosSeccion h JOIN Secciones sc ON sc.id=h.seccion_id JOIN Docentes d ON d.id=sc.docente_id JOIN Usuarios u ON u.id=d.usuario_id "
+                + "LEFT JOIN Asignaturas a ON a.id=sc.asignatura_id WHERE u.usuario=? AND h.fecha_especifica IS NOT NULL ORDER BY h.fecha_especifica,h.hora_inicio", s.getAttribute("usuario")));
         return "docente/horario";
     }
 
@@ -104,22 +108,35 @@ public class DocenteController {
                 String mid = String.valueOf(a.get("id"));
                 Double n1 = nota(p.get("p1_" + mid), 25), n2 = nota(p.get("p2_" + mid), 35), n3 = nota(p.get("p3_" + mid), 40);
                 Double extra = nota(p.get("extra_" + mid), 100);
-                String obs = p.get("obs_" + mid);
-                dao.ejecutarSQL("INSERT INTO Calificaciones(matricula_id, parcial1, parcial2, parcial3, puntos_extra, observacion_extra) VALUES(?,?,?,?,?,?) "
-                        + "ON CONFLICT(matricula_id) DO UPDATE SET parcial1 = excluded.parcial1, parcial2 = excluded.parcial2, parcial3 = excluded.parcial3, puntos_extra = excluded.puntos_extra, observacion_extra = excluded.observacion_extra",
-                        Long.parseLong(mid), n1, n2, n3, extra == null ? 0 : extra, obs);
+                dao.ejecutarSQL("INSERT INTO Calificaciones(matricula_id, parcial1, parcial2, parcial3, puntos_extra) VALUES(?,?,?,?,?) "
+                        + "ON CONFLICT(matricula_id) DO UPDATE SET parcial1=excluded.parcial1, parcial2=excluded.parcial2, parcial3=excluded.parcial3, puntos_extra=excluded.puntos_extra",
+                        Long.parseLong(mid), n1, n2, n3, extra == null ? 0 : extra);
             }
             ra.addFlashAttribute("ok", "Calificaciones guardadas.");
         } catch (Exception e) {
-            ra.addFlashAttribute("error", "Las notas deben ser números entre 0 y 100.");
+            ra.addFlashAttribute("error", "Parcial I máximo 25, Parcial II máximo 35, Parcial III máximo 40 y extras no negativos.");
         }
+        return "redirect:/docente/seccion/" + id;
+    }
+
+    @PostMapping("/seccion/{id}/cerrar-notas")
+    public String cerrarNotas(@PathVariable long id, HttpSession s, RedirectAttributes ra) {
+        if (propia(id, s) == null) return "redirect:/docente";
+        try {
+            long pendientes = Long.parseLong(String.valueOf(dao.consultar(
+                    "SELECT COUNT(*) AS n FROM Matriculas m LEFT JOIN Calificaciones c ON c.matricula_id=m.id "
+                    + "WHERE m.seccion_id=? AND m.estado='ACTIVA' AND (c.parcial1 IS NULL OR c.parcial2 IS NULL OR c.parcial3 IS NULL)", id).get(0).get("n")));
+            if (pendientes > 0) throw new IllegalArgumentException("No se puede cerrar: todavía hay estudiantes sin los tres parciales.");
+            dao.ejecutarSQL("UPDATE Calificaciones SET fecha_cierre=CURRENT_TIMESTAMP WHERE matricula_id IN (SELECT id FROM Matriculas WHERE seccion_id=? AND estado='ACTIVA')", id);
+            ra.addFlashAttribute("ok", "Calificaciones cerradas. El historial académico ya puede calcular los estados finales.");
+        } catch (Exception ex) { ra.addFlashAttribute("error", ex.getMessage()); }
         return "redirect:/docente/seccion/" + id;
     }
 
     private Double nota(String v, double maximo) {
         if (v == null || v.isBlank()) return null;
         double d = Double.parseDouble(v.trim());
-        if (d < 0 || d > maximo) throw new IllegalArgumentException("Fuera de rango");
+        if (d < 0 || d > maximo) throw new IllegalArgumentException("La nota excede el máximo permitido: " + maximo);
         return d;
     }
 
@@ -179,7 +196,7 @@ public class DocenteController {
         List<Double> pr = al.stream().map(a -> Util.num(a.get("promedio"))).filter(Objects::nonNull).toList();
         long ap = pr.stream().filter(x -> x >= Util.PASA).count();
         int[] dist = new int[4];
-        for (double x : pr) dist[x < 70 ? 0 : x < 80 ? 1 : x < 90 ? 2 : 3]++;
+        for (double x : pr) dist[x < 65 ? 0 : x < 80 ? 1 : x < 90 ? 2 : 3]++;
         Map<String, Object> rep = new LinkedHashMap<>();
         rep.put("total", al.size());
         rep.put("calificados", pr.size());

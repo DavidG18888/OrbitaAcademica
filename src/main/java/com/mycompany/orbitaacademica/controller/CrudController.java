@@ -41,12 +41,14 @@ public class CrudController {
             "SELECT id, nombre AS Nombre, fecha_inicio AS Inicio, fecha_fin AS Fin, estado AS Estado FROM Periodos ORDER BY id DESC",
             List.of(t("nombre", "Nombre"), k("fecha_inicio", "Inicio", "date"), k("fecha_fin", "Fin", "date"), ESTADO)),
         "secciones", new Ent("Secciones", "Secciones y horarios",
-            "SELECT s.id, s.codigo AS Seccion, a.nombre AS Asignatura, d.nombre || ' ' || d.apellido AS Docente, p.nombre AS Periodo, s.dia AS Dia, s.hora_inicio AS Inicio, s.hora_fin AS Fin, s.aula AS Aula, s.cupo AS Cupo, (SELECT COUNT(*) FROM Matriculas m WHERE m.seccion_id = s.id AND m.estado = 'ACTIVA') AS Inscritos FROM Secciones s LEFT JOIN Asignaturas a ON a.id = s.asignatura_id LEFT JOIN Docentes d ON d.id = s.docente_id LEFT JOIN Periodos p ON p.id = s.periodo_id ORDER BY s.id DESC",
+            "SELECT s.id, s.codigo AS Seccion, a.nombre AS Asignatura, d.nombre || ' ' || d.apellido AS Docente, p.nombre AS Periodo, "
+            + "COALESCE((SELECT GROUP_CONCAT(COALESCE(h.dia_semana,h.fecha_especifica) || ' ' || h.hora_inicio || '–' || h.hora_fin, ' · ') FROM HorariosSeccion h WHERE h.seccion_id=s.id), s.dia, 'Por definir') AS Horarios, "
+            + "s.aula AS Aula, s.cupo AS Cupo, (SELECT COUNT(*) FROM Matriculas m WHERE m.seccion_id = s.id AND m.estado = 'ACTIVA') AS Inscritos FROM Secciones s LEFT JOIN Asignaturas a ON a.id = s.asignatura_id LEFT JOIN Docentes d ON d.id = s.docente_id LEFT JOIN Periodos p ON p.id = s.periodo_id ORDER BY s.id DESC",
             List.of(t("codigo", "Código de sección"),
                 s("asignatura_id", "Asignatura", "SELECT id, codigo || ' · ' || nombre AS nombre FROM Asignaturas ORDER BY codigo"),
                 s("docente_id", "Docente", "SELECT id, nombre || ' ' || apellido AS nombre FROM Docentes ORDER BY apellido"),
                 s("periodo_id", "Período", "SELECT id, nombre FROM Periodos ORDER BY id DESC"),
-                t("aula", "Aula"), k("cupo", "Cupo", "number"), k("dia", "Día", "dia"), k("hora_inicio", "Hora inicio", "time"), k("hora_fin", "Hora fin", "time")))
+                t("aula", "Aula"), k("cupo", "Cupo", "number")))
     );
 
     private final TursoDAO dao;
@@ -67,6 +69,12 @@ public class CrudController {
         Ent en = ENT.get(e);
         if (en == null) return "redirect:/panel";
         List<Map<String, Object>> r = dao.consultar("SELECT * FROM " + en.tabla() + " WHERE id = ?", id);
+        if ("secciones".equals(e) && !r.isEmpty()) {
+            List<Map<String,Object>> hs = dao.consultar("SELECT dia_semana,fecha_especifica,hora_inicio,hora_fin,COALESCE(aula,'') AS aula FROM HorariosSeccion WHERE seccion_id=? ORDER BY id", id);
+            StringJoiner j = new StringJoiner(";");
+            for (Map<String,Object> h : hs) j.add((h.get("fecha_especifica") == null ? h.get("dia_semana") : "FECHA:" + h.get("fecha_especifica")) + "|" + h.get("hora_inicio") + "|" + h.get("hora_fin") + "|" + h.get("aula"));
+            r.get(0).put("horarios", j.toString());
+        }
         return vista(e, r.isEmpty() ? null : r.get(0), m);
     }
 
@@ -74,6 +82,7 @@ public class CrudController {
     public String guardar(@PathVariable String e, @RequestParam Map<String, String> p, RedirectAttributes ra) {
         Ent en = ENT.get(e);
         if (en == null) return "redirect:/panel";
+        if ("secciones".equals(e)) return guardarSeccion(p, ra);
 
         List<String> cols = new ArrayList<>();
         List<Object> vals = new ArrayList<>();
@@ -98,6 +107,118 @@ public class CrudController {
             ra.addFlashAttribute("error", "No se pudo guardar. Revise que no haya datos repetidos y que los campos sean válidos.");
         }
         return "redirect:/admin/" + e;
+    }
+
+    private String guardarSeccion(Map<String, String> p, RedirectAttributes ra) {
+        try {
+            String id = p.get("id");
+            String codigo = requerido(p, "codigo");
+            long asignatura = Long.parseLong(requerido(p, "asignatura_id"));
+            long docente = Long.parseLong(requerido(p, "docente_id"));
+            long periodo = Long.parseLong(requerido(p, "periodo_id"));
+            String aula = p.getOrDefault("aula", "").trim();
+            String fechaInicio = p.getOrDefault("fecha_inicio", "").trim();
+            String fechaFin = p.getOrDefault("fecha_fin", "").trim();
+            String matriculaInicio = p.getOrDefault("matricula_inicio", "").trim();
+            String matriculaFin = p.getOrDefault("matricula_fin", "").trim();
+            int cupo = Integer.parseInt(requerido(p, "cupo"));
+            if (cupo < 1) throw new IllegalArgumentException("El cupo debe ser mayor que cero.");
+            long actualId = id == null || id.isBlank() ? 0 : Long.parseLong(id);
+            validarConflictos(p.get("horarios"), docente, periodo, aula, actualId);
+            if (id == null || id.isBlank()) {
+                dao.ejecutarSQL("INSERT INTO Secciones(codigo,asignatura_id,docente_id,periodo_id,aula,cupo,fecha_inicio,fecha_fin,matricula_inicio,matricula_fin,estado) VALUES(?,?,?,?,?,?,?,?,?,?, 'ACTIVA')",
+                        codigo, asignatura, docente, periodo, aula, cupo, vacioNull(fechaInicio), vacioNull(fechaFin), vacioNull(matriculaInicio), vacioNull(matriculaFin));
+                List<Map<String,Object>> r = dao.consultar("SELECT id FROM Secciones WHERE codigo=? ORDER BY id DESC LIMIT 1", codigo);
+                long sid = Long.parseLong(String.valueOf(r.get(0).get("id")));
+                guardarBloques(sid, p.get("horarios"));
+            } else {
+                long sid = Long.parseLong(id);
+                dao.ejecutarSQL("UPDATE Secciones SET codigo=?,asignatura_id=?,docente_id=?,periodo_id=?,aula=?,cupo=?,fecha_inicio=?,fecha_fin=?,matricula_inicio=?,matricula_fin=? WHERE id=?",
+                        codigo, asignatura, docente, periodo, aula, cupo, vacioNull(fechaInicio), vacioNull(fechaFin), vacioNull(matriculaInicio), vacioNull(matriculaFin), sid);
+                dao.ejecutarSQL("DELETE FROM HorariosSeccion WHERE seccion_id=?", sid);
+                guardarBloques(sid, p.get("horarios"));
+            }
+            ra.addFlashAttribute("ok", "Sección y horarios guardados correctamente.");
+        } catch (Exception ex) {
+            ra.addFlashAttribute("error", "No se pudo guardar la sección: " + ex.getMessage());
+        }
+        return "redirect:/admin/secciones";
+    }
+
+    private Object vacioNull(String v) { return v == null || v.isBlank() ? null : v; }
+
+    private String requerido(Map<String,String> p, String k) {
+        String v = p.get(k);
+        if (v == null || v.isBlank()) throw new IllegalArgumentException("Falta el campo " + k);
+        return v.trim();
+    }
+
+    private void validarConflictos(String raw, long docenteId, long periodoId, String aulaGeneral, long seccionActual) {
+        if (raw == null || raw.isBlank()) throw new IllegalArgumentException("Agregue al menos un bloque de horario.");
+        List<String[]> nuevos = new ArrayList<>();
+        for (String b : raw.split(";")) {
+            String[] v = b.split("\\|", -1);
+            if (v.length < 4) throw new IllegalArgumentException("Formato de horario inválido.");
+            nuevos.add(v);
+        }
+        for (int i=0;i<nuevos.size();i++) {
+            String[] n = nuevos.get(i);
+            for (int j=i+1;j<nuevos.size();j++) {
+                String[] otro = nuevos.get(j);
+                if (coincideDia(n[0], otro[0]) && seCruzan(n[1],n[2],otro[1],otro[2]))
+                    throw new IllegalArgumentException("Dos bloques de esta sección se cruzan entre sí.");
+            }
+            String aulaNueva = n[3].isBlank() ? aulaGeneral : n[3];
+            List<Map<String,Object>> existentes = dao.consultar(
+                    "SELECT h.dia_semana,h.fecha_especifica,h.hora_inicio,h.hora_fin,COALESCE(h.aula,s.aula,'') AS aula "
+                    + "FROM HorariosSeccion h JOIN Secciones s ON s.id=h.seccion_id "
+                    + "WHERE s.periodo_id=? AND s.id<>? AND (s.docente_id=? OR (?<>'' AND COALESCE(h.aula,s.aula,'')=?))",
+                    periodoId, seccionActual, docenteId, aulaNueva, aulaNueva);
+            for (Map<String,Object> e : existentes) {
+                String diaViejo = e.get("dia_semana") == null ? "" : e.get("dia_semana").toString();
+                String fechaVieja = e.get("fecha_especifica") == null ? "" : e.get("fecha_especifica").toString();
+                boolean mismo = coincideDia(n[0], !fechaVieja.isBlank() ? "FECHA:"+fechaVieja : diaViejo);
+                if (mismo && seCruzan(n[1],n[2],String.valueOf(e.get("hora_inicio")),String.valueOf(e.get("hora_fin"))))
+                    throw new IllegalArgumentException("El docente o el aula ya tiene una clase en ese horario.");
+            }
+        }
+    }
+
+    private boolean coincideDia(String a, String b) {
+        boolean af = a.startsWith("FECHA:"), bf = b.startsWith("FECHA:");
+        if (af && bf) return a.substring(6).equals(b.substring(6));
+        if (!af && !bf) return a.equals(b);
+        try {
+            String fecha = af ? a.substring(6) : b.substring(6);
+            String dia = af ? b : a;
+            int num = java.time.LocalDate.parse(fecha).getDayOfWeek().getValue();
+            return num == switch (dia) { case "Lunes" -> 1; case "Martes" -> 2; case "Miércoles" -> 3; case "Jueves" -> 4; case "Viernes" -> 5; case "Sábado" -> 6; case "Domingo" -> 7; default -> -1; };
+        } catch (Exception ex) { return false; }
+    }
+
+    private boolean seCruzan(String inicioA, String finA, String inicioB, String finB) {
+        return inicioA.compareTo(finB) < 0 && inicioB.compareTo(finA) < 0;
+    }
+
+    // Formato enviado por el formulario: DIA|HH:mm|HH:mm|AULA;FECHA:yyyy-MM-dd|HH:mm|HH:mm|AULA
+    private void guardarBloques(long seccionId, String raw) {
+        if (raw == null || raw.isBlank()) throw new IllegalArgumentException("Agregue al menos un bloque de horario.");
+        Set<String> claves = new HashSet<>();
+        for (String bloque : raw.split(";")) {
+            String[] v = bloque.split("\\|", -1);
+            if (v.length < 4) throw new IllegalArgumentException("Formato de horario inválido.");
+            String dia = v[0].startsWith("FECHA:") ? null : v[0];
+            String fecha = v[0].startsWith("FECHA:") ? v[0].substring(6) : null;
+            String inicio = v[1], fin = v[2], aula = v[3];
+            if (!inicio.matches("\\d{2}:\\d{2}") || !fin.matches("\\d{2}:\\d{2}") || inicio.compareTo(fin) >= 0)
+                throw new IllegalArgumentException("Revise las horas de cada bloque.");
+            if (dia != null && !List.of("Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo").contains(dia))
+                throw new IllegalArgumentException("Día de la semana inválido.");
+            String clave = v[0] + inicio + fin;
+            if (!claves.add(clave)) throw new IllegalArgumentException("Hay bloques repetidos.");
+            dao.ejecutarSQL("INSERT INTO HorariosSeccion(seccion_id,dia_semana,fecha_especifica,hora_inicio,hora_fin,aula) VALUES(?,?,?,?,?,?)",
+                    seccionId, dia, fecha, inicio, fin, aula);
+        }
     }
 
     @PostMapping("/{e}/{id}/eliminar")
