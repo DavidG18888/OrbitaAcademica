@@ -10,13 +10,13 @@ import java.util.stream.Collectors;
 // Utilidades académicas compartidas por los portales
 public final class Util {
 
-    public static final double PASA = 65;
+    public static final double PASA = 70;
     public static final ZoneId ZONA = ZoneId.of("America/Tegucigalpa");
     public static final List<String> DIAS = List.of("Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado");
 
-    // Promedio de tres parciales (solo si están los tres)
+    // Los parciales se almacenan como puntos obtenidos: 25 + 35 + 40. Extras limitados a 100.
     public static final String PROM = "CASE WHEN c.parcial1 IS NOT NULL AND c.parcial2 IS NOT NULL AND c.parcial3 IS NOT NULL "
-            + "THEN ROUND((c.parcial1 + c.parcial2 + c.parcial3) / 3.0, 1) END";
+            + "THEN MIN(100, ROUND(c.parcial1 + c.parcial2 + c.parcial3 + COALESCE(c.puntos_extra,0), 1)) END";
 
     private Util() {}
 
@@ -47,7 +47,7 @@ public final class Util {
     public static void marcar(List<Map<String, Object>> rows) {
         for (Map<String, Object> r : rows) {
             Double p = num(r.get("promedio"));
-            r.put("estado", p == null ? "En curso" : p >= PASA ? "Aprobada" : "Reprobada");
+            r.put("estado", p == null ? "Cursando" : p >= PASA ? "Aprobada" : "Reprobada");
             r.put("clase", p == null ? "neutral" : p >= PASA ? "ok" : "bad");
             Double cl = num(r.get("clases")), as = num(r.get("asistidas"));
             r.put("asist", cl == null || cl == 0 || as == null ? null : Math.round(100.0 * as / cl));

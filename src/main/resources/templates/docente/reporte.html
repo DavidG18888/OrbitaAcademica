@@ -11,14 +11,14 @@
         <section class="stats">
             <article><small>Promedio de la sección</small><strong th:text="${rep.media} ?: '—'"></strong><span th:text="${rep.calificados} + ' de ' + ${rep.total} + ' con notas completas'"></span></article>
             <article><small>Aprobados</small><strong th:text="${rep.aprobados}"></strong><span th:text="${rep.pctAprob} + '% de los calificados'"></span></article>
-            <article><small>Reprobados</small><strong th:text="${rep.reprobados}"></strong><span>Promedio menor a 65</span></article>
+            <article><small>Reprobados</small><strong th:text="${rep.reprobados}"></strong><span>Promedio menor a 70</span></article>
             <article><small>Mayor / menor</small><strong th:text="${rep.max} != null ? ${rep.max} + ' / ' + ${rep.min} : '—'"></strong><span>Promedios extremos</span></article>
         </section>
 
         <section class="box">
             <h3>Distribución de promedios</h3>
             <div class="dist">
-                <div th:each="l, i : ${ {'0–64','65–79','80–89','90–100'} }">
+                <div th:each="l, i : ${ {'0–69','70–79','80–89','90–100'} }">
                     <i th:style="'height:' + (${rep.dist[i.index]} * 100 / ${rep.distMax}) + '%'" th:classappend="${i.index == 0} ? 'bad'"></i>
                     <b th:text="${rep.dist[i.index]}"></b><small th:text="${l}"></small>
                 </div>

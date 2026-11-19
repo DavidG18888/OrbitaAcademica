@@ -32,7 +32,7 @@ public class DocenteController {
             + "LEFT JOIN Asignaturas a ON a.id = s.asignatura_id LEFT JOIN Periodos p ON p.id = s.periodo_id WHERE u.usuario = ? ";
 
     private static final String ALUM =
-            "SELECT m.id AS matricula, e.codigo, e.nombre || ' ' || e.apellido AS nombre, c.parcial1, c.parcial2, c.parcial3, " + Util.PROM + " AS promedio, "
+            "SELECT m.id AS matricula, e.codigo, e.nombre || ' ' || e.apellido AS nombre, c.parcial1, c.parcial2, c.parcial3, c.puntos_extra, " + Util.PROM + " AS promedio, "
             + "(SELECT COUNT(*) FROM Asistencia x WHERE x.matricula_id = m.id) AS clases, "
             + "(SELECT COUNT(*) FROM Asistencia x WHERE x.matricula_id = m.id AND x.estado IN ('P','J')) AS asistidas "
             + "FROM Matriculas m JOIN Estudiantes e ON e.id = m.estudiante_id LEFT JOIN Calificaciones c ON c.matricula_id = m.id "
@@ -102,10 +102,12 @@ public class DocenteController {
         try {
             for (Map<String, Object> a : dao.consultar("SELECT id FROM Matriculas WHERE seccion_id = ? AND estado = 'ACTIVA'", id)) {
                 String mid = String.valueOf(a.get("id"));
-                Double n1 = nota(p.get("p1_" + mid)), n2 = nota(p.get("p2_" + mid)), n3 = nota(p.get("p3_" + mid));
-                dao.ejecutarSQL("INSERT INTO Calificaciones(matricula_id, parcial1, parcial2, parcial3) VALUES(?,?,?,?) "
-                        + "ON CONFLICT(matricula_id) DO UPDATE SET parcial1 = excluded.parcial1, parcial2 = excluded.parcial2, parcial3 = excluded.parcial3",
-                        Long.parseLong(mid), n1, n2, n3);
+                Double n1 = nota(p.get("p1_" + mid), 25), n2 = nota(p.get("p2_" + mid), 35), n3 = nota(p.get("p3_" + mid), 40);
+                Double extra = nota(p.get("extra_" + mid), 100);
+                String obs = p.get("obs_" + mid);
+                dao.ejecutarSQL("INSERT INTO Calificaciones(matricula_id, parcial1, parcial2, parcial3, puntos_extra, observacion_extra) VALUES(?,?,?,?,?,?) "
+                        + "ON CONFLICT(matricula_id) DO UPDATE SET parcial1 = excluded.parcial1, parcial2 = excluded.parcial2, parcial3 = excluded.parcial3, puntos_extra = excluded.puntos_extra, observacion_extra = excluded.observacion_extra",
+                        Long.parseLong(mid), n1, n2, n3, extra == null ? 0 : extra, obs);
             }
             ra.addFlashAttribute("ok", "Calificaciones guardadas.");
         } catch (Exception e) {
@@ -114,10 +116,10 @@ public class DocenteController {
         return "redirect:/docente/seccion/" + id;
     }
 
-    private Double nota(String v) {
+    private Double nota(String v, double maximo) {
         if (v == null || v.isBlank()) return null;
         double d = Double.parseDouble(v.trim());
-        if (d < 0 || d > 100) throw new IllegalArgumentException("Fuera de rango");
+        if (d < 0 || d > maximo) throw new IllegalArgumentException("Fuera de rango");
         return d;
     }
 
@@ -177,7 +179,7 @@ public class DocenteController {
         List<Double> pr = al.stream().map(a -> Util.num(a.get("promedio"))).filter(Objects::nonNull).toList();
         long ap = pr.stream().filter(x -> x >= Util.PASA).count();
         int[] dist = new int[4];
-        for (double x : pr) dist[x < 65 ? 0 : x < 80 ? 1 : x < 90 ? 2 : 3]++;
+        for (double x : pr) dist[x < 70 ? 0 : x < 80 ? 1 : x < 90 ? 2 : 3]++;
         Map<String, Object> rep = new LinkedHashMap<>();
         rep.put("total", al.size());
         rep.put("calificados", pr.size());

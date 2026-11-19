@@ -14,16 +14,19 @@
     <th:block th:if="${session.rol == 'ADMIN'}">
         <div class="nav-title">GENERAL</div>
         <a th:classappend="${slug == 'panel'} ? 'active'" href="/panel">▦ Dashboard</a>
-        <div class="nav-title">GESTIÓN ACADÉMICA</div>
-        <a th:classappend="${slug == 'estudiantes'} ? 'active'" href="/admin/estudiantes">♙ Estudiantes</a>
-        <a th:classappend="${slug == 'docentes'} ? 'active'" href="/admin/docentes">♧ Docentes</a>
-        <a th:classappend="${slug == 'carreras'} ? 'active'" href="/admin/carreras">◈ Carreras</a>
-        <a th:classappend="${slug == 'asignaturas'} ? 'active'" href="/admin/asignaturas">▤ Asignaturas</a>
-        <a th:classappend="${slug == 'periodos'} ? 'active'" href="/admin/periodos">◷ Períodos</a>
-        <a th:classappend="${slug == 'secciones'} ? 'active'" href="/admin/secciones">▥ Secciones y horarios</a>
-        <a th:classappend="${slug == 'matriculas'} ? 'active'" href="/admin/matriculas">▣ Matrículas</a>
-        <div class="nav-title">SISTEMA</div>
-        <a th:classappend="${slug == 'diagnostico'} ? 'active'" href="/admin/diagnostico">⚙ Diagnóstico</a>
+        <details class="nav-group" open>
+            <summary>OPERACIÓN ACADÉMICA</summary>
+            <a th:classappend="${slug == 'estudiantes'} ? 'active'" href="/admin/estudiantes">♙ Estudiantes</a>
+            <a th:classappend="${slug == 'docentes'} ? 'active'" href="/admin/docentes">♧ Docentes</a>
+            <a th:classappend="${slug == 'asignaturas'} ? 'active'" href="/admin/asignaturas">▤ Asignaturas</a>
+            <a th:classappend="${slug == 'secciones'} ? 'active'" href="/admin/secciones">▥ Secciones y horarios</a>
+            <a th:classappend="${slug == 'matriculas'} ? 'active'" href="/admin/matriculas">▣ Matrículas</a>
+        </details>
+        <details class="nav-group">
+            <summary>CONFIGURACIÓN</summary>
+            <a th:classappend="${slug == 'carreras'} ? 'active'" href="/admin/carreras">◈ Carreras</a>
+            <a th:classappend="${slug == 'periodos'} ? 'active'" href="/admin/periodos">◷ Períodos</a>
+        </details>
     </th:block>
 
     <th:block th:if="${session.rol == 'DOCENTE'}">
@@ -42,7 +45,7 @@
         <a th:classappend="${slug == 'horario'} ? 'active'" href="/estudiante/horario">◷ Mi horario</a>
         <a th:classappend="${slug == 'asistencia'} ? 'active'" href="/estudiante/asistencia">▣ Mi asistencia</a>
         <a th:classappend="${slug == 'historial'} ? 'active'" href="/estudiante/historial">❖ Historial académico</a>
-        <a th:classappend="${slug == 'cuenta'} ? 'active'" href="/estudiante/cuenta">♙ Mis datos</a>
+        <a th:classappend="${slug == 'cuenta'} ? 'active'" href="/estudiante/cuenta">♙ Mi perfil</a>
     </th:block>
 
     <div class="nav-title" th:if="${session.rol != 'ADMIN'}">SISTEMA</div>
