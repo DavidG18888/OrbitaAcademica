@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Secciones y horarios')}"></head>
+<body><div class="app">
+<aside th:replace="~{fragments :: side('secciones')}"></aside>
+<main class="main">
+<header th:replace="~{fragments :: top('Secciones y horarios')}"></header>
+<th:block th:replace="~{fragments :: avisos}"></th:block>
+<section class="box">
+<h3>Crear nueva sección</h3>
+<p class="muted">Agregue uno o varios bloques. Cada bloque puede repetirse en varios días o corresponder a una fecha concreta.</p>
+<form method="post" action="/admin/secciones/guardar" class="form-grid" id="formSeccion">
+<label><span>Código de sección</span><input name="codigo" required maxlength="40" placeholder="MAT-101-A"></label>
+<label><span>Asignatura</span><select name="asignatura_id" required><option value="">Seleccione</option><option th:each="x:${asignaturas}" th:value="${x.id}" th:text="${x.nombre}"></option></select></label>
+<label><span>Docente</span><select name="docente_id" required><option value="">Seleccione</option><option th:each="x:${docentes}" th:value="${x.id}" th:text="${x.nombre}"></option></select></label>
+<label><span>Período</span><select name="periodo_id" required><option value="">Seleccione</option><option th:each="x:${periodos}" th:value="${x.id}" th:text="${x.nombre}"></option></select></label>
+<label><span>Cupo máximo</span><input type="number" name="cupo" min="1" value="30" required></label>
+<div class="schedule-builder" style="grid-column:1/-1">
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><h3>Programación de horarios</h3><button type="button" class="btn ghost" id="addBlock">+ Agregar bloque</button></div>
+<div id="blocks"></div>
+</div>
+<div class="form-actions"><button class="btn" type="submit">Guardar sección</button></div>
+</form>
+</section>
+<section class="box"><h3>Secciones registradas</h3><div class="scroll"><table class="tabla">
+<thead><tr><th>Código</th><th>Asignatura</th><th>Docente</th><th>Período</th><th>Cupo</th><th>Bloques</th><th>Estado</th></tr></thead>
+<tbody><tr th:each="f:${filas}"><td th:text="${f.codigo}"></td><td th:text="${f.asignatura}"></td><td th:text="${f.docente}"></td><td th:text="${f.periodo}"></td><td th:text="${f.cupo}"></td><td th:text="${f.bloques}"></td><td th:text="${f.estado}"></td></tr>
+<tr th:if="${filas.isEmpty()}"><td colspan="7" class="muted">Todavía no hay secciones.</td></tr></tbody></table></div></section>
+</main></div>
+<template id="blockTemplate">
+<div class="box schedule-block" style="margin-top:14px;border:1px solid #dce5ef">
+<div style="display:flex;justify-content:space-between;align-items:center"><strong class="block-title">Bloque</strong><button type="button" class="removeBlock btn ghost">Quitar</button></div>
+<label><span>Tipo de programación</span><select class="tipo"><option value="RECURRENTE">Días recurrentes</option><option value="FECHA">Fecha específica</option></select></label>
+<div class="days"><span>Días de clase</span><div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0">
+<label><input type="checkbox" value="Lunes"> Lunes</label><label><input type="checkbox" value="Martes"> Martes</label><label><input type="checkbox" value="Miércoles"> Miércoles</label><label><input type="checkbox" value="Jueves"> Jueves</label><label><input type="checkbox" value="Viernes"> Viernes</label><label><input type="checkbox" value="Sábado"> Sábado</label><label><input type="checkbox" value="Domingo"> Domingo</label></div></div>
+<label class="specific" style="display:none"><span>Fecha de clase</span><input type="date" class="fecha"></label>
+<div class="form-grid"><label><span>Hora de inicio</span><input type="time" class="inicio" required></label><label><span>Hora de finalización</span><input type="time" class="fin" required></label><label><span>Aula</span><input class="aula" placeholder="A-101"></label></div>
+<input type="hidden" name="bloque" class="serialized">
+</div>
+</template>
+<script>
+const blocks=document.getElementById('blocks'), tpl=document.getElementById('blockTemplate');
+function addBlock(){
+ const node=tpl.content.firstElementChild.cloneNode(true);
+ node.querySelector('.removeBlock').addEventListener('click',()=>{node.remove();renumber();});
+ node.querySelector('.tipo').addEventListener('change',()=>{const specific=node.querySelector('.tipo').value==='FECHA';node.querySelector('.days').style.display=specific?'none':'block';node.querySelector('.specific').style.display=specific?'block':'block';node.querySelector('.specific').style.display=specific?'block':'none';});
+ node.querySelectorAll('input,select').forEach(x=>x.addEventListener('change',sync));
+ node.querySelectorAll('input').forEach(x=>x.addEventListener('input',sync));
+ blocks.appendChild(node);renumber();
+}
+function renumber(){[...blocks.children].forEach((b,i)=>b.querySelector('.block-title').textContent='Bloque '+(i+1));sync();}
+function sync(){
+ [...blocks.children].forEach(b=>{
+  const tipo=b.querySelector('.tipo').value, dias=[...b.querySelectorAll('.days input:checked')].map(x=>x.value).join(',');
+  const fecha=b.querySelector('.fecha').value, ini=b.querySelector('.inicio').value, fin=b.querySelector('.fin').value, aula=b.querySelector('.aula').value;
+  b.querySelector('.serialized').value=[tipo,dias,fecha,ini,fin,aula].join('|');
+ });
+}
+document.getElementById('addBlock').addEventListener('click',addBlock);
+document.getElementById('formSeccion').addEventListener('submit',e=>{sync();if(!blocks.children.length){e.preventDefault();alert('Agregue al menos un bloque de horario.');return;}for(const b of blocks.children){const tipo=b.querySelector('.tipo').value;if(tipo==='RECURRENTE'&&!b.querySelector('.days input:checked')){e.preventDefault();alert('Seleccione al menos un día en cada bloque recurrente.');return;}if(tipo==='FECHA'&&!b.querySelector('.fecha').value){e.preventDefault();alert('Seleccione la fecha específica.');return;}if(!b.querySelector('.inicio').value||!b.querySelector('.fin').value||b.querySelector('.fin').value<=b.querySelector('.inicio').value){e.preventDefault();alert('Revise las horas de cada bloque.');return;}}});
+addBlock();
+</script></body></html>
