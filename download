@@ -1,6 +1,0 @@
-target/
-.idea/
-.vscode/
-*.iml
-nbproject/private/
-.DS_Store
