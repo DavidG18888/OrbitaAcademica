@@ -193,9 +193,17 @@ public class TursoDAO {
                 );
             }
 
-            JsonNode respuestaSQL = resultados
-                    .get(0)
-                    .path("response");
+            JsonNode primero = resultados.get(0);
+
+            if (primero.has("error")) {
+                throw new RuntimeException(
+                        primero.path("error")
+                                .path("message")
+                                .asText("Error desconocido de Turso")
+                );
+            }
+
+            JsonNode respuestaSQL = primero.path("response");
 
             if (respuestaSQL.has("error")) {
 

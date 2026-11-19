@@ -6,7 +6,9 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class InicioService {
@@ -24,20 +26,43 @@ public class InicioService {
         "CREATE TABLE IF NOT EXISTS Asistencia (id INTEGER PRIMARY KEY AUTOINCREMENT, matricula_id INTEGER NOT NULL, fecha TEXT NOT NULL, estado TEXT NOT NULL, UNIQUE(matricula_id, fecha))"
     };
 
-    private static final String[] ALTER = {
-        "ALTER TABLE Estudiantes ADD COLUMN carrera_id INTEGER",
-        "ALTER TABLE Estudiantes ADD COLUMN correo TEXT",
-        "ALTER TABLE Estudiantes ADD COLUMN telefono TEXT",
-        "ALTER TABLE Docentes ADD COLUMN correo TEXT",
-        "ALTER TABLE Docentes ADD COLUMN telefono TEXT"
-    };
-
     private final TursoDAO dao;
     private final BCryptPasswordEncoder encoder;
 
     public InicioService(TursoDAO dao, BCryptPasswordEncoder encoder) {
         this.dao = dao;
         this.encoder = encoder;
+    }
+
+    // Columnas que debe tener cada tabla (se leen de las sentencias DDL): {nombre, tipo}
+    public static Map<String, List<String[]>> esperadas() {
+        Map<String, List<String[]>> m = new LinkedHashMap<>();
+        for (String ddl : DDL) {
+            int a = ddl.indexOf('('), b = ddl.lastIndexOf(')');
+            String tabla = ddl.substring("CREATE TABLE IF NOT EXISTS ".length(), a).trim();
+            List<String> partes = new ArrayList<>();
+            StringBuilder actual = new StringBuilder();
+            int prof = 0;
+            for (char ch : ddl.substring(a + 1, b).toCharArray()) {
+                if (ch == '(') prof++;
+                if (ch == ')') prof--;
+                if (ch == ',' && prof == 0) {
+                    partes.add(actual.toString().trim());
+                    actual.setLength(0);
+                } else {
+                    actual.append(ch);
+                }
+            }
+            partes.add(actual.toString().trim());
+            List<String[]> cols = new ArrayList<>();
+            for (String p : partes) {
+                String[] t = p.split("\\s+");
+                if (t[0].toUpperCase().startsWith("UNIQUE") || t[0].equals("id")) continue;
+                cols.add(new String[]{t[0], t.length > 1 ? t[1] : "TEXT"});
+            }
+            m.put(tabla, cols);
+        }
+        return m;
     }
 
     // Preparar la base de datos al iniciar el sistema
@@ -62,11 +87,15 @@ public class InicioService {
             }
         }
 
-        // Columnas nuevas en instalaciones anteriores (si ya existen, se ignora el error)
-        for (String alter : ALTER) {
-            try {
-                dao.ejecutarSQL(alter);
-            } catch (Exception ignorado) {
+        // Si una tabla ya existía con otra estructura, agrega las columnas que falten
+        // (si la columna ya existe, Turso responde con error y se ignora)
+        for (Map.Entry<String, List<String[]>> t : esperadas().entrySet()) {
+            if (t.getKey().equals("Usuarios")) continue;
+            for (String[] c : t.getValue()) {
+                try {
+                    dao.ejecutarSQL("ALTER TABLE " + t.getKey() + " ADD COLUMN " + c[0] + " " + c[1]);
+                } catch (Exception ignorado) {
+                }
             }
         }
 

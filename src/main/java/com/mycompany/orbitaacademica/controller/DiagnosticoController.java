@@ -11,13 +11,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.*;
 
-// Estado de las tablas en Turso y reparación (crea las que falten)
+// Estado de las tablas en Turso (existencia, registros y columnas) y reparación
 @Controller
 @RequestMapping("/admin/diagnostico")
 public class DiagnosticoController {
-
-    private static final List<String> TABLAS = List.of("Usuarios", "Carreras", "Estudiantes", "Docentes", "Periodos",
-            "Asignaturas", "Secciones", "Matriculas", "Calificaciones", "Asistencia");
 
     private final TursoDAO dao;
     private final InicioService inicio;
@@ -30,12 +27,23 @@ public class DiagnosticoController {
     @GetMapping
     public String ver(Model m) {
         List<Map<String, Object>> filas = new ArrayList<>();
-        for (String t : TABLAS) {
+        for (Map.Entry<String, List<String[]>> t : InicioService.esperadas().entrySet()) {
             Map<String, Object> f = new LinkedHashMap<>();
-            f.put("tabla", t);
+            f.put("tabla", t.getKey());
             try {
-                f.put("ok", true);
-                f.put("detalle", dao.consultar("SELECT COUNT(*) AS n FROM " + t).get(0).get("n") + " registros");
+                Object n = dao.consultar("SELECT COUNT(*) AS n FROM " + t.getKey()).get(0).get("n");
+                Set<String> reales = new HashSet<>();
+                for (Map<String, Object> c : dao.consultar("PRAGMA table_info(" + t.getKey() + ")")) {
+                    reales.add(String.valueOf(c.get("name")));
+                }
+                List<String> faltan = new ArrayList<>();
+                for (String[] c : t.getValue()) {
+                    if (!reales.contains(c[0])) faltan.add(c[0]);
+                }
+                f.put("ok", faltan.isEmpty());
+                f.put("detalle", n + " registros"
+                        + (faltan.isEmpty() ? "" : " · le faltan las columnas: " + String.join(", ", faltan))
+                        + " · columnas actuales: " + String.join(", ", reales));
             } catch (Exception e) {
                 f.put("ok", false);
                 f.put("detalle", e.getMessage());
@@ -51,7 +59,7 @@ public class DiagnosticoController {
     public String reparar(RedirectAttributes ra) {
         List<String> errores = inicio.preparar();
         if (errores.isEmpty()) {
-            ra.addFlashAttribute("ok", "Tablas verificadas y creadas correctamente.");
+            ra.addFlashAttribute("ok", "Tablas y columnas verificadas. Revise abajo que todas aparezcan en OK.");
         } else {
             ra.addFlashAttribute("error", "Algunas sentencias fallaron: " + String.join(" | ", errores));
         }
