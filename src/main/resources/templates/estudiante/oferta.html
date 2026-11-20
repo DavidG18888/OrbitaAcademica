@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Oferta académica')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('oferta')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Oferta académica')}"></header>
+        <th:block th:replace="~{fragments :: avisos}"></th:block>
+
+        <section class="hero">
+            <div>
+                <h2>Oferta académica disponible</h2>
+                <p>Selecciona la sección y jornada que mejor se adapte a tu horario. Las asignaturas ya aprobadas no vuelven a mostrarse.</p>
+            </div>
+        </section>
+
+        <!-- BANNER DE ESTADO DE MATRÍCULA (PRIMER INGRESO GRATIS VS REINGRESO CON ARANCEL) -->
+        <section class="box" th:if="${matInfo.hayPeriodo}"
+                 th:style="${matInfo.habilitado} ? 'border-left:5px solid #16a34a;background:#f0fdf4' : 'border-left:5px solid #d97706;background:#fffbeb'">
+            <div class="box-head" style="margin-bottom:0">
+                <div>
+                    <span class="pill" th:classappend="${matInfo.habilitado} ? 'ok' : 'warn'"
+                          th:text="${matInfo.esNuevo ? '🎓 Primer ingreso · Matrícula Gratuita' : (matInfo.habilitado ? '✓ Matrícula del período habilitada' : '⏳ Pago de matrícula requerido')}"></span>
+                    <h3 style="margin:8px 0 4px" th:text="${'Período: ' + matInfo.periodoNombre}"></h3>
+                    <p class="muted" style="margin:0" th:if="${matInfo.esNuevo}">
+                        Al ser estudiante de primer ingreso sin asignaturas previas, tu matrícula en este período es <strong>gratuita (L 0.00)</strong>. Ya puedes inscribir tus clases.
+                    </p>
+                    <p class="muted" style="margin:0" th:if="${!matInfo.esNuevo and matInfo.habilitado}">
+                        Tu matrícula para este período está habilitada. Puedes inscribir tus secciones disponibles.
+                    </p>
+                    <p style="margin:4px 0 0;font-size:13.5px;color:#78350f" th:if="${!matInfo.esNuevo and !matInfo.habilitado}">
+                        Como estudiante de reingreso, debes cubrir el arancel de matrícula de <strong>L <span th:text="${matInfo.costo}"></span></strong> para este período.
+                        <span th:if="${matInfo.estadoPago == 'PENDIENTE'}">Tu comprobante ya fue enviado y está <strong>en revisión por administración</strong>.</span>
+                        <span th:if="${matInfo.estadoPago == 'RECHAZADO'}">Tu comprobante anterior fue rechazado. Sube un nuevo PDF válido.</span>
+                    </p>
+                </div>
+
+                <!-- Subida rápida de comprobante de matrícula si es reingreso y aún no está aprobado -->
+                <form th:if="${!matInfo.esNuevo and !matInfo.habilitado and matInfo.estadoPago != 'PENDIENTE'}"
+                      method="post" action="/estudiante/servicios/pago-matricula" enctype="multipart/form-data" class="inline">
+                    <input type="hidden" name="periodoId" th:value="${matInfo.periodoId}">
+                    <input type="hidden" name="redirect" value="/estudiante/oferta">
+                    <input type="file" name="archivo" accept="application/pdf,.pdf" required style="padding:8px;border:1px solid #cbd5e1;border-radius:8px;background:#fff">
+                    <button class="btn" type="submit">Subir pago de matrícula (PDF)</button>
+                </form>
+            </div>
+        </section>
+
+        <section class="box">
+            <div class="box-head">
+                <div>
+                    <h3>Secciones abiertas para matrícula</h3>
+                    <p class="muted" style="margin:4px 0 0">Puedes elegir entre distintas secciones y modalidades (Semana, Sabatina, Nocturna o Virtual).</p>
+                </div>
+                <span class="pill" th:text="${oferta.size() + ' secciones disponibles'}"></span>
+            </div>
+
+            <div class="scroll">
+                <table class="tabla">
+                    <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Asignatura</th>
+                        <th>UV</th>
+                        <th>Sección / Jornada</th>
+                        <th>Período</th>
+                        <th>Docente</th>
+                        <th>Horario y aula</th>
+                        <th>Cierre matrícula</th>
+                        <th>Cupos</th>
+                        <th>Acción</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="x : ${oferta}">
+                        <td><strong th:text="${x.codigo}"></strong></td>
+                        <td>
+                            <strong th:text="${x.asignatura}"></strong>
+                            <span class="pill warn" th:if="${x.reprobada_antes > 0}" style="margin-left:6px">Repetición</span>
+                        </td>
+                        <td th:text="${x.uv}"></td>
+                        <td>
+                            <strong th:text="${x.seccion}"></strong><br>
+                            <span class="pill neutral" th:text="${x.modalidad}"></span>
+                        </td>
+                        <td th:text="${x.periodo}"></td>
+                        <td th:text="${x.docente}"></td>
+                        <td>
+                            <div th:text="${x.horario} ?: 'Por definir'"></div>
+                            <small class="muted" th:text="${'Aula: ' + x.aula}"></small>
+                        </td>
+                        <td th:text="${x.matricula_fin != null and !#strings.isEmpty(x.matricula_fin)} ? ${x.matricula_fin} : 'Abierta'"></td>
+                        <td><strong th:text="|${x.inscritos} / ${x.cupo}|"></strong></td>
+                        <td>
+                            <span class="pill ok" th:if="${x.ya_matriculado > 0}">Matriculado</span>
+                            <span class="pill neutral" th:if="${x.ya_matriculado == 0 and x.materia_ya_inscrita > 0}">Inscrita en otra sección</span>
+                            <span class="pill warn" th:if="${x.ya_matriculado == 0 and x.materia_ya_inscrita == 0 and x.aun_no_abre}" th:text="${'Abre ' + x.matricula_inicio}"></span>
+                            <span class="pill warn" th:if="${x.ya_matriculado == 0 and x.materia_ya_inscrita == 0 and !x.aun_no_abre and !matInfo.habilitado}">Requiere pago matrícula</span>
+                            <form th:if="${x.ya_matriculado == 0 and x.materia_ya_inscrita == 0 and !x.aun_no_abre and matInfo.habilitado and x.inscritos < x.cupo}" method="post" th:action="@{/estudiante/oferta/{id}/matricular(id=${x.id})}">
+                                <button class="btn sm" type="submit">Matricularme</button>
+                            </form>
+                            <div th:if="${x.ya_matriculado == 0 and x.materia_ya_inscrita == 0 and !x.aun_no_abre and matInfo.habilitado and x.inscritos >= x.cupo}" class="inline">
+                                <span class="pill bad">Lleno</span>
+                                <form method="post" th:action="@{/estudiante/servicios/oferta/{id}/espera(id=${x.id})}">
+                                    <button class="neutro" type="submit">Lista de espera</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr th:if="${oferta.isEmpty()}">
+                        <td colspan="10" class="muted">No hay secciones disponibles para matrícula en este momento.</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
