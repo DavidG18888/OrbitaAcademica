@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Dashboard')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('panel')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Dashboard')}"></header>
+
+        <section class="stats">
+            <article><small>Estudiantes</small><strong th:text="${st.estudiantes}">0</strong><span>Registros en sistema</span></article>
+            <article><small>Docentes</small><strong th:text="${st.docentes}">0</strong><span>Personal académico</span></article>
+            <article><small>Asignaturas</small><strong th:text="${st.asignaturas}">0</strong><span>Oferta académica</span></article>
+            <article><small>Matrículas</small><strong th:text="${st.matriculas}">0</strong><span>Registradas</span></article>
+        </section>
+
+        <section class="box">
+            <h3>Accesos principales</h3>
+            <div class="quick">
+                <a href="/admin/estudiantes"><b>＋</b><span>Registrar estudiante</span></a>
+                <a href="/admin/docentes"><b>＋</b><span>Registrar docente</span></a>
+                <a href="/admin/secciones"><b>▥</b><span>Abrir secciones</span></a>
+                <a href="/admin/matriculas"><b>▣</b><span>Matricular estudiantes</span></a>
+            </div>
+            <p class="muted">Al crear un estudiante o docente se genera su usuario: el usuario y la clave inicial son su código.</p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

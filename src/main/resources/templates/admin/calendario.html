@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Calendario institucional')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('calendario')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Calendario institucional')}"></header>
+        <th:block th:replace="~{fragments :: avisos}"></th:block>
+
+        <section class="hero">
+            <div>
+                <h2>Agenda y eventos institucionales</h2>
+                <p>Publica eventos académicos, ferias, fechas de exámenes o avisos con fotografías visibles en todos los portales.</p>
+            </div>
+        </section>
+
+        <section class="box">
+            <h3>Publicar nuevo evento</h3>
+            <form method="post" action="/admin/servicios/evento" enctype="multipart/form-data" class="form-grid">
+                <label><span>Título del evento</span><input name="titulo" placeholder="Ej. Feria Tecnológica / Inicio de Exámenes" required></label>
+                <label><span>Fecha y hora de inicio</span><input type="datetime-local" name="inicio" required></label>
+                <label><span>Fecha y hora de fin</span><input type="datetime-local" name="fin"></label>
+                <label><span>Lugar / Modalidad</span><input name="lugar" placeholder="Auditorio Principal / Campus / Virtual"></label>
+                <label class="wide"><span>Fotografía o banner promocional (JPG, PNG, WEBP)</span><input type="file" name="imagen" accept="image/jpeg,image/png,image/webp"></label>
+                <label class="wide"><span>Descripción del evento</span><textarea name="descripcion" rows="3" placeholder="Detalles, requisitos o programa del evento..."></textarea></label>
+                <div class="form-actions"><button class="btn" type="submit">📅 Publicar en calendario institucional</button></div>
+            </form>
+        </section>
+
+        <section class="box">
+            <h3>Eventos publicados</h3>
+            <div class="scroll">
+                <table class="tabla">
+                    <thead><tr><th>Fotografía</th><th>Título y descripción</th><th>Inicio</th><th>Fin</th><th>Lugar</th><th>Estado</th><th>Acción</th></tr></thead>
+                    <tbody>
+                    <tr th:each="ev:${eventos}">
+                        <td>
+                            <img th:if="${ev.imagen_url != null and !#strings.isEmpty(ev.imagen_url)}" th:src="@{/archivo-privado/evento/{id}(id=${ev.id})}" alt="Evento" style="width:88px;height:56px;object-fit:cover;border-radius:9px;border:1px solid #cbd5e1">
+                            <span th:if="${ev.imagen_url == null or #strings.isEmpty(ev.imagen_url)}" class="muted">Sin imagen</span>
+                        </td>
+                        <td><strong th:text="${ev.titulo}"></strong><br><small class="muted" th:text="${ev.descripcion}"></small></td>
+                        <td th:text="${#strings.replace(ev.fecha_inicio, 'T', ' ')}"></td>
+                        <td th:text="${ev.fecha_fin != null} ? ${#strings.replace(ev.fecha_fin, 'T', ' ')} : '—'"></td>
+                        <td th:text="${ev.lugar} ?: '—'"></td>
+                        <td><span class="pill" th:classappend="${ev.estado == 'ACTIVO'} ? 'ok' : 'bad'" th:text="${ev.estado}"></span></td>
+                        <td>
+                            <form th:if="${ev.estado == 'ACTIVO'}" method="post" th:action="@{/admin/servicios/evento/{id}/cancelar(id=${ev.id})}" onsubmit="return confirm('¿Cancelar este evento?')">
+                                <button type="submit">Cancelar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${eventos.isEmpty()}"><td colspan="7" class="muted">No hay eventos registrados todavía.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
