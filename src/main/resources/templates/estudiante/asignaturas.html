@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Mis asignaturas')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('asignaturas')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Mis asignaturas y tareas')}">
+        </header>
+
+        <div class="box-head">
+            <div>
+                <p class="muted" style="margin:0">Accede al aula de cada asignatura para descargar recursos y subir tus entregas, o imprime tu constancia oficial.</p>
+            </div>
+            <button type="button" class="print-icon no-print" title="Imprimir constancia de matrícula" onclick="openJasperViewer('/estudiante/constancia')">
+                <svg th:replace="~{fragments :: printerIcon}"></svg>
+                <span>Constancia de matrícula PDF</span>
+            </button>
+        </div>
+
+        <section class="hero">
+            <div>
+                <h2>Aula virtual por asignatura</h2>
+                <p>Cada clase cuenta con su propio espacio de tareas por parcial, materiales adjuntos y entregas individuales.</p>
+            </div>
+        </section>
+
+        <div class="cards">
+            <article class="card" th:each="r : ${actuales}">
+                <div class="inline" style="justify-content:space-between">
+                    <small th:text="${r.codigo} + ' · Sección ' + ${r.seccion}"></small>
+                    <span class="pill neutral" th:text="${r.modalidad}"></span>
+                </div>
+                <h3 th:text="${r.asignatura}"></h3>
+                <p class="muted">👨‍🏫 <span th:text="${r.docente} ?: 'Docente por asignar'"></span></p>
+                <p class="muted">🕒 <span th:text="${r.horario} + ' · ' + (${r.aula} ?: 'Aula por definir')"></span></p>
+                <p class="muted">📚 <span th:text="${r.uv}"></span> UV · <span th:text="${r.periodo}"></span> · <strong th:text="${r.total_tareas}">0</strong> tareas</p>
+                <div class="card-actions">
+                    <a class="btn" th:href="@{/estudiante/asignatura/{id}(id=${r.seccion_id})}">Abrir clase y tareas</a>
+                    <a class="btn ghost" th:href="@{/estudiante/soporte(categoria='Matrícula',asunto=${'Solicitud de retiro de clase: ' + r.asignatura + ' (' + r.seccion + ')'})}">Solicitar retiro</a>
+                </div>
+            </article>
+        </div>
+        <p class="muted" th:if="${actuales.isEmpty()}">Todavía no tiene asignaturas matriculadas.</p>
+    </main>
+</div>
+<th:block th:replace="~{fragments :: printViewer}"></th:block>
+<th:block th:replace="~{fragments :: printScript}"></th:block>
+</body>
+</html>

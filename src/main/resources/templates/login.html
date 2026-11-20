@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Ingreso | Órbita Académica</title>
+
+    <link rel="stylesheet" href="/css/orbita.css">
+</head>
+
+<body class="login-body">
+
+    <div class="login-wrap">
+
+        <!-- Sección de marca -->
+        <section class="login-brand">
+
+            <img src="/img/logo-orbita.png" alt="Órbita Académica">
+
+            <h1>Conectando el futuro académico.</h1>
+
+            <p>
+                Una plataforma para organizar y acompañar cada etapa
+                de la vida académica.
+            </p>
+
+        </section>
+
+        <!-- Formulario de ingreso -->
+        <section class="login-card">
+
+            <div class="small-brand">
+                GESTIÓN INTEGRAL
+            </div>
+
+            <h2>Bienvenido</h2>
+
+            <p class="muted">
+                Ingrese sus credenciales para continuar.
+            </p>
+
+            <form method="post" action="/login">
+
+                <label for="usuario">Usuario</label>
+
+                <input
+                    type="text"
+                    id="usuario"
+                    name="usuario"
+                    placeholder="Ingrese su usuario"
+                    required
+                >
+
+                <label for="clave">Contraseña</label>
+
+                <input
+                    type="password"
+                    id="clave"
+                    name="clave"
+                    placeholder="Ingrese su contraseña"
+                    required
+                >
+
+                <button type="submit">
+                    Ingresar al sistema
+                </button>
+
+            </form>
+
+            <!-- Mensaje de error -->
+            <div
+                class="error"
+                th:if="${error}"
+                th:text="${error}">
+            </div>
+
+            <footer>
+                Órbita Académica · Gestión Integral
+            </footer>
+
+        </section>
+
+    </div>
+
+</body>
+
+</html>

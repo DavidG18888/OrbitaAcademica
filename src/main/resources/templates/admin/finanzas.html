@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Finanzas y cuotas')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('finanzas')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Finanzas, matrícula y cuotas')}"></header>
+        <th:block th:replace="~{fragments :: avisos}"></th:block>
+
+        <section class="hero">
+            <div>
+                <h2>Gestión financiera institucional</h2>
+                <p>Configura el costo de matrícula por período (gratis para estudiantes de primer ingreso) y habilita las cuotas generales por parcial.</p>
+            </div>
+        </section>
+
+        <!-- 1. COSTO DE MATRÍCULA POR PERÍODO -->
+        <section class="box">
+            <div class="box-head">
+                <div>
+                    <h3>1. Arancel de matrícula por período</h3>
+                    <p class="muted" style="margin:4px 0 0">Los estudiantes nuevos sin historial previo tienen matrícula gratuita (L 0.00). Los estudiantes de reingreso pagan este monto para habilitar su matrícula en el período.</p>
+                </div>
+            </div>
+            <form method="post" action="/admin/servicios/matricula-costo" class="form-grid">
+                <label><span>Período académico</span>
+                    <select name="periodoId" required>
+                        <option th:each="p : ${periodosTodos}" th:value="${p.id}" th:text="${p.nombre + ' (Actual: L ' + p.costo_matricula + ')'}"></option>
+                    </select>
+                </label>
+                <label><span>Costo de matrícula reingreso (L)</span>
+                    <input type="number" name="costoMatricula" min="0" step="0.01" placeholder="Ej. 1500.00" required>
+                </label>
+                <div class="form-actions"><button class="btn" type="submit">Actualizar costo de matrícula</button></div>
+            </form>
+        </section>
+
+        <!-- 2. ACTIVAR CUOTA GENERAL POR PARCIAL DEL PERÍODO ACTIVO -->
+        <section class="box">
+            <div class="box-head">
+                <div>
+                    <h3>2. Habilitar cuota general por parcial</h3>
+                    <p class="muted" style="margin:4px 0 0">Aplica de forma general a todos los estudiantes del período activo. Cada parcial solo puede asignarse una vez por período.</p>
+                </div>
+            </div>
+            <form method="post" action="/admin/servicios/cuota" class="form-grid">
+                <label><span>Período activo disponible</span>
+                    <select name="periodoId" required>
+                        <option value="">Selecciona período activo</option>
+                        <option th:each="p : ${periodosActivos}" th:value="${p.id}" th:text="${p.nombre}"></option>
+                    </select>
+                </label>
+                <label><span>Parcial al que corresponde</span>
+                    <select name="parcial" required>
+                        <option value="1">Parcial I (1er Parcial)</option>
+                        <option value="2">Parcial II (2do Parcial)</option>
+                        <option value="3">Parcial III (3er Parcial)</option>
+                    </select>
+                </label>
+                <label><span>Concepto</span><input name="concepto" placeholder="Ej. Mensualidad / Cuota Parcial" required></label>
+                <label><span>Monto (L)</span><input type="number" name="monto" min="0.01" step="0.01" required></label>
+                <label><span>Fecha límite de pago</span><input type="date" name="fechaLimite"></label>
+                <label class="wide"><span>Instrucciones de pago</span><textarea name="instrucciones" rows="2" placeholder="Cuentas bancarias o referencias institucionales"></textarea></label>
+                <div class="form-actions"><button class="btn" type="submit">Habilitar cuota del parcial</button></div>
+            </form>
+        </section>
+
+        <!-- 3. CUOTAS CONFIGURADAS -->
+        <section class="box">
+            <h3>Cuotas generales configuradas por período y parcial</h3>
+            <div class="scroll">
+                <table class="tabla">
+                    <thead><tr><th>Período</th><th>Parcial</th><th>Concepto</th><th>Monto (L)</th><th>Fecha límite</th><th>Estado</th><th>Acción</th></tr></thead>
+                    <tbody>
+                    <tr th:each="c:${cuotas}">
+                        <td><strong th:text="${c.periodo}"></strong></td>
+                        <td><span class="pill" th:text="${'Parcial ' + c.parcial}"></span></td>
+                        <td th:text="${c.concepto}"></td>
+                        <td><strong th:text="${'L ' + c.monto}"></strong></td>
+                        <td th:text="${c.fecha_limite} ?: 'Sin límite'"></td>
+                        <td><span class="pill" th:classappend="${c.activa == 1} ? 'ok' : 'neutral'" th:text="${c.activa == 1 ? 'Activa' : 'Inactiva'}"></span></td>
+                        <td>
+                            <form method="post" th:action="@{/admin/servicios/cuota/{id}/estado(id=${c.id})}">
+                                <input type="hidden" name="activa" th:value="${c.activa == 1 ? 0 : 1}">
+                                <button class="neutro" type="submit" th:text="${c.activa == 1 ? 'Desactivar' : 'Activar'}"></button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${cuotas.isEmpty()}"><td colspan="7" class="muted">No hay cuotas configuradas todavía.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 4. COMPROBANTES DE MATRÍCULA PENDIENTES -->
+        <section class="box" th:if="${!pagosMatricula.isEmpty()}">
+            <h3>Comprobantes de matrícula pendientes de aprobación</h3>
+            <div class="scroll">
+                <table class="tabla">
+                    <thead><tr><th>Código</th><th>Estudiante</th><th>Período</th><th>Monto</th><th>Comprobante</th><th>Dictamen</th></tr></thead>
+                    <tbody>
+                    <tr th:each="pm:${pagosMatricula}">
+                        <td th:text="${pm.codigo}"></td>
+                        <td><strong th:text="${pm.estudiante}"></strong></td>
+                        <td th:text="${pm.periodo}"></td>
+                        <td><strong th:text="${'L ' + pm.monto}"></strong></td>
+                        <td><a class="btn ghost sm" th:href="@{/archivo-privado/matricula/{id}(id=${pm.id})}" target="_blank" rel="noopener">📄 Ver PDF</a></td>
+                        <td>
+                            <form method="post" th:action="@{/admin/servicios/pago-matricula/{id}/revisar(id=${pm.id})}" class="inline">
+                                <select name="estado" style="padding:7px;border-radius:8px;border:1px solid #cbd5e1">
+                                    <option value="APROBADO">Aprobar y habilitar matrícula</option>
+                                    <option value="RECHAZADO">Rechazar</option>
+                                </select>
+                                <input name="observacion" placeholder="Observación" style="padding:7px;border-radius:8px;border:1px solid #cbd5e1">
+                                <button class="btn sm" type="submit">Guardar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- 5. COMPROBANTES DE CUOTAS PARCIALES PENDIENTES -->
+        <section class="box">
+            <h3>Comprobantes de cuotas parciales pendientes</h3>
+            <div class="scroll">
+                <table class="tabla">
+                    <thead><tr><th>Código</th><th>Estudiante</th><th>Período</th><th>Parcial / Concepto</th><th>Monto</th><th>Comprobante</th><th>Dictamen</th></tr></thead>
+                    <tbody>
+                    <tr th:each="p:${pagos}">
+                        <td th:text="${p.codigo}"></td>
+                        <td><strong th:text="${p.estudiante}"></strong></td>
+                        <td th:text="${p.periodo}"></td>
+                        <td th:text="${'Parcial ' + p.parcial + ' · ' + p.concepto}"></td>
+                        <td><strong th:text="${'L ' + p.monto}"></strong></td>
+                        <td><a class="btn ghost sm" th:href="@{/archivo-privado/pago/{id}(id=${p.id})}" target="_blank" rel="noopener">📄 Ver PDF</a></td>
+                        <td>
+                            <form method="post" th:action="@{/admin/servicios/pago/{id}/revisar(id=${p.id})}" class="inline">
+                                <select name="estado" style="padding:7px;border-radius:8px;border:1px solid #cbd5e1">
+                                    <option value="APROBADO">Aprobar</option>
+                                    <option value="RECHAZADO">Rechazar</option>
+                                </select>
+                                <input name="observacion" placeholder="Observación" style="padding:7px;border-radius:8px;border:1px solid #cbd5e1">
+                                <button class="btn sm" type="submit">Guardar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${pagos.isEmpty()}"><td colspan="7" class="muted">No hay comprobantes pendientes de revisión.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>
