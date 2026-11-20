@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Dashboard')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('panel')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Dashboard administrativo')}"></header>
+
+        <section class="stats">
+            <article><small>Estudiantes</small><strong th:text="${st.estudiantes}">0</strong><span>Registros en sistema</span></article>
+            <article><small>Docentes</small><strong th:text="${st.docentes}">0</strong><span>Personal académico</span></article>
+            <article><small>Asignaturas</small><strong th:text="${st.asignaturas}">0</strong><span>Oferta académica</span></article>
+            <article><small>Matrículas activas</small><strong th:text="${st.matriculas}">0</strong><span>En curso</span></article>
+            <article><small>Expedientes pendientes</small><strong th:text="${st.docs_pendientes}">0</strong><span>Por revisar</span></article>
+            <article><small>Tickets abiertos</small><strong th:text="${st.tickets_abiertos}">0</strong><span>Pendientes o en proceso</span></article>
+        </section>
+
+        <section th:replace="~{fragments :: calendario(${eventos})}"></section>
+
+        <section class="box">
+            <h3>Accesos principales</h3>
+            <div class="quick">
+                <a href="/admin/estudiantes"><b>♙</b><span>Registrar estudiante</span></a>
+                <a href="/admin/docentes"><b>♧</b><span>Registrar docente</span></a>
+                <a href="/admin/secciones"><b>▥</b><span>Abrir secciones</span></a>
+                <a href="/admin/matriculas"><b>▣</b><span>Matricular estudiantes</span></a>
+                <a href="/admin/expedientes"><b>▧</b><span>Revisar expedientes</span></a>
+                <a href="/admin/soporte"><b>◉</b><span>Soporte y eventos</span></a>
+            </div>
+            <p class="muted" style="margin-top:14px">Al crear un estudiante o docente se genera su usuario automáticamente: su usuario y clave inicial corresponden a su código.</p>
+        </section>
+    </main>
+</div>
+</body>
+</html>

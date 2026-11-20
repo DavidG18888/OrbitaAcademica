@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head('Soporte institucional')}"></head>
+<body>
+<div class="app">
+    <aside th:replace="~{fragments :: side('soporte')}"></aside>
+    <main class="main">
+        <header th:replace="~{fragments :: top('Soporte y seguimiento')}"></header>
+        <th:block th:replace="~{fragments :: avisos}"></th:block>
+
+        <section class="hero">
+            <div>
+                <h2>Atención institucional y eventos</h2>
+                <p>Gestiona tickets de estudiantes, casos de inasistencia, calendario con fotografías y seguimiento académico.</p>
+            </div>
+        </section>
+
+        <!-- TICKETS DE ESTUDIANTES -->
+        <section class="box">
+            <div class="box-head">
+                <h3>Tickets de estudiantes</h3>
+                <div class="inline">
+                    <a class="btn sm" th:classappend="${filtroTickets != 'activos'} ? ' ghost'" href="/admin/soporte?filtroTickets=activos">Activos (Pendiente / En Proceso)</a>
+                    <a class="btn sm" th:classappend="${filtroTickets != 'cerrados'} ? ' ghost'" href="/admin/soporte?filtroTickets=cerrados">Finalizados (Resuelto / Rechazado)</a>
+                </div>
+            </div>
+
+            <article th:each="t:${tickets}" class="ticket-card">
+                <div class="ticket-header">
+                    <div>
+                        <span class="pill neutral" th:text="${t.categoria} ?: 'General'"></span>
+                        <h4 style="margin:6px 0 4px;font-size:16px;color:#0f172a" th:text="${t.asunto}"></h4>
+                        <small class="muted">Estudiante: <b th:text="${t.estudiante + ' (' + t.codigo + ')'}"></b> · <span th:text="${t.creado_en}"></span></small>
+                    </div>
+                    <span class="pill"
+                          th:classappend="${t.estado == 'RESUELTO'} ? 'ok' : (${t.estado == 'RECHAZADO'} ? 'bad' : (${t.estado == 'EN_PROCESO'} ? 'neutral' : 'warn'))"
+                          th:text="${t.estado == 'EN_PROCESO' ? 'En Proceso' : (t.estado == 'RESUELTO' ? 'Resuelto' : (t.estado == 'RECHAZADO' ? 'Rechazado' : 'Pendiente'))}"></span>
+                </div>
+
+                <p style="margin:12px 0;color:#1e293b" th:text="${t.descripcion}"></p>
+
+                <div class="ticket-thread" th:if="${!t.respuestas.isEmpty()}">
+                    <div th:each="r:${t.respuestas}" class="ticket-msg" th:classappend="${r.rol == 'ADMIN'} ? 'staff'">
+                        <div class="ticket-msg-meta">
+                            <span th:text="${r.rol == 'ADMIN' ? '🛡 Administración (' + r.usuario + ')' : '🎓 Estudiante (' + r.usuario + ')'}"></span>
+                            <span th:text="${r.creado_en}"></span>
+                        </div>
+                        <p style="margin:0;font-size:13.5px" th:text="${r.mensaje}"></p>
+                    </div>
+                </div>
+
+                <form method="post" th:action="@{/admin/servicios/ticket/{id}/respuesta(id=${t.id})}" class="ticket-reply-box">
+                    <input type="text" name="mensaje" placeholder="Escribe una respuesta oficial para el estudiante..." required>
+                    <select name="estado">
+                        <option value="PENDIENTE" th:selected="${t.estado == 'PENDIENTE'}">Pendiente</option>
+                        <option value="EN_PROCESO" th:selected="${t.estado == 'EN_PROCESO'}">En Proceso</option>
+                        <option value="RESUELTO" th:selected="${t.estado == 'RESUELTO'}">Resuelto</option>
+                        <option value="RECHAZADO" th:selected="${t.estado == 'RECHAZADO'}">Rechazado</option>
+                    </select>
+                    <button class="btn" type="submit">Enviar y actualizar</button>
+                </form>
+            </article>
+            <p th:if="${tickets.isEmpty()}" class="muted">No hay tickets en esta vista.</p>
+        </section>
+
+        <!-- CALENDARIO INSTITUCIONAL CON FOTOGRAFÍAS -->
+        <section class="box">
+            <h3>Publicar evento en el calendario institucional</h3>
+            <form method="post" action="/admin/servicios/evento" enctype="multipart/form-data" class="form-grid">
+                <label><span>Título del evento</span><input name="titulo" placeholder="Ej. Feria Tecnológica / Inicio de Exámenes" required></label>
+                <label><span>Fecha y hora de inicio</span><input type="datetime-local" name="inicio" required></label>
+                <label><span>Fecha y hora de fin</span><input type="datetime-local" name="fin"></label>
+                <label><span>Lugar / Modalidad</span><input name="lugar" placeholder="Auditorio Principal / Virtual"></label>
+                <label class="wide"><span>Fotografía o banner del evento (JPG, PNG, WEBP)</span><input type="file" name="imagen" accept="image/jpeg,image/png,image/webp"></label>
+                <label class="wide"><span>Descripción</span><textarea name="descripcion" rows="2" placeholder="Detalles e información relevante del evento"></textarea></label>
+                <div class="form-actions"><button class="btn" type="submit">Publicar evento</button></div>
+            </form>
+
+            <div class="scroll" style="margin-top:18px">
+                <table class="tabla">
+                    <thead><tr><th>Imagen</th><th>Evento</th><th>Inicio</th><th>Fin</th><th>Lugar</th><th>Estado</th><th>Acción</th></tr></thead>
+                    <tbody>
+                    <tr th:each="ev:${eventos}">
+                        <td>
+                            <img th:if="${ev.imagen_url != null and !#strings.isEmpty(ev.imagen_url)}" th:src="@{/archivo-privado/evento/{id}(id=${ev.id})}" alt="Evento" style="width:72px;height:46px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1">
+                            <span th:if="${ev.imagen_url == null or #strings.isEmpty(ev.imagen_url)}" class="muted">Sin foto</span>
+                        </td>
+                        <td><strong th:text="${ev.titulo}"></strong><br><small class="muted" th:text="${ev.descripcion}"></small></td>
+                        <td th:text="${#strings.replace(ev.fecha_inicio, 'T', ' ')}"></td>
+                        <td th:text="${ev.fecha_fin != null} ? ${#strings.replace(ev.fecha_fin, 'T', ' ')} : '—'"></td>
+                        <td th:text="${ev.lugar} ?: '—'"></td>
+                        <td><span class="pill" th:classappend="${ev.estado == 'ACTIVO'} ? 'ok' : 'bad'" th:text="${ev.estado}"></span></td>
+                        <td>
+                            <form th:if="${ev.estado == 'ACTIVO'}" method="post" th:action="@{/admin/servicios/evento/{id}/cancelar(id=${ev.id})}">
+                                <button type="submit">Cancelar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr th:if="${eventos.isEmpty()}"><td colspan="7" class="muted">No hay eventos registrados.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- REVISIÓN DE AUSENCIAS -->
+        <section class="box" th:if="${!ausencias.isEmpty()}">
+            <h3>Revisión de estudiantes ausentes</h3>
+            <div class="scroll">
+                <table class="tabla">
+                    <thead><tr><th>Estudiante</th><th>Asignatura / Sección</th><th>Motivo</th><th>Intentos</th><th>Acciones</th></tr></thead>
+                    <tbody>
+                    <tr th:each="a:${ausencias}">
+                        <td><strong th:text="${a.estudiante}"></strong><br><small class="muted" th:text="${a.codigo}"></small></td>
+                        <td th:text="${a.asignatura + ' · ' + a.seccion}"></td>
+                        <td th:text="${a.motivo}"></td>
+                        <td th:text="${a.intentos_contacto + ' (' + a.estado_revision + ')'}"></td>
+                        <td>
+                            <form method="post" th:action="@{/admin/servicios/ausencia/{id}/resolver(id=${a.id})}" class="inline">
+                                <button class="btn sm" name="decision" value="CONFIRMADA">Confirmar No se presentó</button>
+                                <button class="neutro" name="decision" value="DESCARTADA">Descartar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- LISTA DE ESPERA Y EVALUACIONES -->
+        <section class="content-grid">
+            <article class="box">
+                <h3>Evaluación docente (resultados)</h3>
+                <div class="scroll">
+                    <table class="tabla">
+                        <thead><tr><th>Docente</th><th>Asignatura</th><th>Sección</th><th>Promedio</th><th>Resp.</th></tr></thead>
+                        <tbody>
+                        <tr th:each="e:${evaluaciones}">
+                            <td th:text="${e.docente}"></td>
+                            <td th:text="${e.asignatura}"></td>
+                            <td th:text="${e.seccion}"></td>
+                            <td><strong th:text="${e.promedio + ' / 5'}"></strong></td>
+                            <td th:text="${e.respuestas}"></td>
+                        </tr>
+                        <tr th:if="${evaluaciones.isEmpty()}"><td colspan="5" class="muted">Sin evaluaciones registradas.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="box">
+                <h3>Lista de espera</h3>
+                <div class="scroll">
+                    <table class="tabla">
+                        <thead><tr><th>Pos.</th><th>Estudiante</th><th>Sección</th><th>Estado</th></tr></thead>
+                        <tbody>
+                        <tr th:each="w:${waitlist}">
+                            <td th:text="${'#' + w.posicion}"></td>
+                            <td th:text="${w.estudiante}"></td>
+                            <td th:text="${w.asignatura + ' · ' + w.seccion}"></td>
+                            <td>
+                                <form method="post" th:action="@{/admin/servicios/espera/{id}/estado(id=${w.id})}" class="inline">
+                                    <select name="estado" style="padding:5px;border-radius:7px;border:1px solid #cbd5e1">
+                                        <option th:selected="${w.estado == 'ESPERA'}">ESPERA</option>
+                                        <option th:selected="${w.estado == 'NOTIFICADO'}">NOTIFICADO</option>
+                                        <option th:selected="${w.estado == 'MATRICULADO'}">MATRICULADO</option>
+                                        <option th:selected="${w.estado == 'CANCELADO'}">CANCELADO</option>
+                                    </select>
+                                    <button class="neutro" type="submit">OK</button>
+                                </form>
+                            </td>
+                        </tr>
+                        <tr th:if="${waitlist.isEmpty()}"><td colspan="4" class="muted">Sin estudiantes en lista de espera.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+</div>
+</body>
+</html>
